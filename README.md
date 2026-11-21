@@ -14,7 +14,20 @@ python3 -m http.server 8777
 To use it on a tablet or phone on the same Wi-Fi, run `python3 -m http.server 8777 --bind 0.0.0.0` and open `http://<this-computer-ip>:8777`.
 Install it as an app with the browser's "Install app" or "Add to Home Screen". For a permanent link, deploy the folder to any static host (GitHub Pages, Netlify, Cloudflare Pages).
 
-Progress is saved in the browser (localStorage) per player. Use **Grown-ups → Download backup** to move it to another device.
+Progress is saved in the browser (localStorage) per player. Use **Grown-ups → Download backup** to move it to another device, or turn on cloud sync.
+
+## Cloud sync (optional, Firebase)
+
+Sign in with Google on **Grown-ups → Cloud sync** (or on the player picker of a new device). Every player and imported word list is kept in sync on all devices signed in to the same account. The merge is three-way per player: whichever side changed wins, and if both changed, the copy with more XP wins. See `js/sync/merge.js`.
+
+One-time setup:
+1. In the [Firebase console](https://console.firebase.google.com), create a project (Google Analytics is not needed).
+2. **Build → Authentication → Get started → Google → Enable.** Then go to **Settings → Authorized domains** and add your site's domain, e.g. `yourname.github.io`.
+3. **Build → Firestore Database → Create database** (production mode). On the **Rules** tab, paste `firestore.rules` and publish.
+4. **Project settings → Your apps → Web (`</>`)**: register an app, then copy the `firebaseConfig` object into `js/sync/firebase-config.js`.
+
+With `firebaseConfig = null`, sync is off and the Firebase SDK is never loaded.
+To test locally without a real project: run `npx firebase-tools emulators:start --only auth,firestore --project demo-bq`, then set the config's `projectId` to `demo-bq`. Any `demo-*` project ID connects to the local emulators.
 
 ## Test
 
@@ -43,4 +56,5 @@ For the format, see `parseWordList` in `js/spelling/logic.js`.
 - `js/math/column.js`, `js/math/guided.js`: column workspace and coach mode
 - `js/english/content.js`: all lessons and questions (add units here)
 - `js/spelling/words.js`: starter lists. `js/spelling/logic.js`: matching, diff and import parsing
+- `js/sync/`: optional Firebase cloud sync (`merge.js` is the pure, tested merge logic)
 - `js/shared/`: mastery and spaced repetition, rewards, achievements, speech, sound, confetti

@@ -7,6 +7,7 @@ import { SKILLS } from '../math/skills.js';
 import { ENGLISH_UNITS } from '../english/content.js';
 import { MASTERED_BOX } from '../shared/mastery.js';
 import { go } from '../router.js';
+import { syncCard } from './syncCard.js';
 
 export const FREE_AVATARS = ['🦊', '🐼', '🐯', '🐸', '🐨', '🐰', '🐶', '🐱'];
 
@@ -79,5 +80,7 @@ export function viewProfiles() {
     st.profiles.length ? null : h('p', { class: 'muted' }, 'Learn math, English and spelling. Earn coins, level up and collect trophies!'),
     name, h('p', { class: 'small muted' }, 'Pick your buddy:'), picks,
     h('button', { class: 'btn big', onclick: create }, "Let's go! 🚀")));
+  const sync = syncCard({ compact: true });
+  if (sync) main.append(sync);
   if (!st.profiles.length) name.focus();
 }

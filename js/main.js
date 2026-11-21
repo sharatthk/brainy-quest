@@ -6,6 +6,7 @@ import { viewShop, viewTrophies } from './views/shop.js';
 import { viewParent } from './views/parent.js';
 import { viewMap, viewPlay } from './math/mathApp.js';
 import { viewEnglishHome, viewLesson, viewQuiz, viewReview } from './english/englishApp.js';
+import { initSync } from './sync/sync.js';
 import { viewSpellingHome, viewPractice, viewChallenge, viewWords, viewImport } from './spelling/spellingApp.js';
 
 const needProfile = fn => params => {
@@ -53,6 +54,7 @@ function syncChrome() {
 onChange(syncChrome);
 syncChrome();
 render();
+initSync();
 
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});

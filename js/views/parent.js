@@ -10,6 +10,8 @@ import { levelOf, currentStreak } from '../shared/rewards.js';
 import { allLists } from '../spelling/spellingApp.js';
 import { normalizeSpelling } from '../spelling/logic.js';
 import { render as rerender, go } from '../router.js';
+import { syncCard } from './syncCard.js';
+import { syncStatus } from '../sync/sync.js';
 
 let unlockedUntil = 0;
 const ERROR_LABELS = {
@@ -96,8 +98,11 @@ export function viewParent() {
       toast(e.message, '⚠️', 4000);
     }
   });
+  const sync = syncCard();
+  if (sync) main.append(sync);
+  const cloud = !!syncStatus().user;
   main.append(h('section', { class: 'card stack' }, h('h3', {}, '💾 Data'),
-    h('p', { class: 'muted small' }, 'Progress is saved in this browser only. Download a backup to move it to another device.'),
+    h('p', { class: 'muted small' }, cloud ? 'Progress is saved in this browser and in the cloud. A backup file is an extra copy you keep yourself.' : 'Progress is saved in this browser only. Download a backup to move it to another device.'),
     h('div', { class: 'row' },
       h('button', { class: 'btn alt', onclick: () => {
         const a = h('a', { href: URL.createObjectURL(new Blob([exportData()], { type: 'application/json' })), download: `brainy-quest-backup-${new Date().toISOString().slice(0, 10)}.json` });
@@ -106,7 +111,7 @@ export function viewParent() {
       } }, '⬇️ Download backup'),
       h('label', { class: 'btn alt file-btn' }, '⬆️ Restore backup', file)),
     h('button', { class: 'link-btn danger', onclick: () => {
-      if (!confirm(`Delete ${p.name}'s profile and all progress? This cannot be undone.`)) return;
+      if (!confirm(`Delete ${p.name}'s profile and all progress${cloud ? ' on every synced device' : ''}? This cannot be undone.`)) return;
       deleteProfile(p.id);
       go(getState().profiles.length ? '/' : '/profiles');
     } }, `Delete ${p.name}'s profile`)));

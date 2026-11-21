@@ -26,7 +26,7 @@ function defaults() {
   };
 }
 
-function migrate(p) {
+export function migrate(p) {
   const d = defaults();
   for (const [k, v] of Object.entries(d)) {
     if (p[k] === undefined) p[k] = v;
