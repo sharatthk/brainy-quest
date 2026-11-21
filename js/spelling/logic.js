@@ -11,6 +11,11 @@ export function isCorrectSpelling(typed, target) {
   return a === b || (a.length > 0 && stripMarks(a) === stripMarks(b));
 }
 
+// A word may list alternate accepted spellings (e.g. practice OR practise).
+export function matchesWord(typed, word) {
+  return [word.w, ...(word.alts || [])].some(t => isCorrectSpelling(typed, t));
+}
+
 // Levenshtein alignment -> [{op:'ok'|'sub'|'del'|'ins', t?:typedChar, c?:correctChar}]
 export function diffSpelling(typed, target) {
   const a = [...normalizeSpelling(typed)], b = [...normalizeSpelling(target)];
@@ -41,16 +46,20 @@ export function diffSpelling(typed, target) {
 
 // Parse pasted or uploaded word lists.
 // Supported: one word per line; "word | definition | sentence"; tab-separated; comma-separated words.
+// Alternate spellings: "practice OR practise".
 export function parseWordList(text) {
   const out = [];
   const seen = new Set();
-  const add = (w, def = '', sent = '') => {
-    w = String(w).replace(/^\s*(\d+\s*[.)]?|[-•*])\s*/, '').replace(/\s+/g, ' ').trim();
+  const tidy = w => String(w).replace(/^\s*(\d+\s*[.)]?|[-•*])\s*/, '').replace(/\*+$/, '').replace(/\s+/g, ' ').trim();
+  const add = (raw, def = '', sent = '') => {
+    const [w, ...alts] = String(raw).split(/\s+OR\s+/).map(tidy);
     if (!w || w.length > 40 || !/\p{L}/u.test(w) || /\d/.test(w)) return;
     const key = normalizeSpelling(w);
     if (seen.has(key)) return;
     seen.add(key);
-    out.push({ w, def: def.trim(), sent: sent.trim() });
+    const word = { w, def: def.trim(), sent: sent.trim() };
+    if (alts.filter(Boolean).length) word.alts = alts.filter(Boolean);
+    out.push(word);
   };
   for (const raw of String(text).split(/\r?\n/)) {
     const line = raw.trim();

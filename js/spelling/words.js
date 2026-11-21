@@ -1,5 +1,6 @@
-// Starter spelling lists (original selection, definitions and sentences).
-// Load the official competition list through "Import word list" for the full set.
+// Spelling lists: the official 2024 Words of the Champions (generated) plus original starter lists.
+import { WOC_2024 } from './woc2024.js';
+
 // Format per word: [word, part of speech, definition, example sentence]
 
 const L1 = [
@@ -163,8 +164,10 @@ const L3 = [
 
 const toWords = arr => arr.map(([w, pos, def, sent]) => ({ w, pos, def, sent }));
 
+const STARTER = 'Starter lists (with meanings and sentences)';
 export const BUILTIN_LISTS = [
-  { id: 'starter-1', name: 'Level 1 - Busy Bee', emoji: '🐝', builtin: true, words: toWords(L1) },
-  { id: 'starter-2', name: 'Level 2 - Honey Maker', emoji: '🍯', builtin: true, words: toWords(L2) },
-  { id: 'starter-3', name: 'Level 3 - Queen Bee', emoji: '👑', builtin: true, words: toWords(L3) },
+  ...WOC_2024.map(l => ({ ...l, builtin: true })),
+  { id: 'starter-1', name: 'Level 1 - Busy Bee', emoji: '🐝', group: STARTER, builtin: true, words: toWords(L1) },
+  { id: 'starter-2', name: 'Level 2 - Honey Maker', emoji: '🍯', group: STARTER, builtin: true, words: toWords(L2) },
+  { id: 'starter-3', name: 'Level 3 - Queen Bee', emoji: '👑', group: STARTER, builtin: true, words: toWords(L3) },
 ];

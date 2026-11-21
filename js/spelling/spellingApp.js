@@ -3,7 +3,7 @@ import { h, modal, toast } from '../ui.js';
 import { screen, sessionFrame, resultsView, cheer, praise } from '../views/common.js';
 import { profile, save, getState } from '../store.js';
 import { BUILTIN_LISTS } from './words.js';
-import { isCorrectSpelling, diffSpelling, parseWordList, blankWord, normalizeSpelling } from './logic.js';
+import { matchesWord, diffSpelling, parseWordList, blankWord, normalizeSpelling } from './logic.js';
 import { newCard, grade, isDue, cardStatus } from '../shared/mastery.js';
 import { award, recordAnswer, finishSession } from '../shared/rewards.js';
 import { sfx } from '../shared/sound.js';
@@ -33,11 +33,14 @@ function listStats(list) {
 
 // ---------- Definitions (built-in, or looked up online for imported words) ----------
 
+// Built-in meanings win; anything missing (often the example sentence) is looked up once and cached.
+const withInfo = (word, info) => ({ ...word, ...info, def: word.def || info.def, pos: word.pos || info.pos, sent: word.sent || info.sent });
+
 async function wordInfo(word) {
-  if (word.def) return word;
+  if (word.def && word.sent) return word;
   const defs = getState().defs;
   const k = keyOf(word.w);
-  if (defs[k]) return { ...word, ...defs[k] };
+  if (defs[k]) return withInfo(word, defs[k]);
   try {
     const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word.w)}`);
     if (!res.ok) throw new Error('not found');
@@ -48,9 +51,9 @@ async function wordInfo(word) {
     const info = { def: d.definition || '', pos: m?.partOfSpeech || '', sent: d.example || '', origin: e?.origin || '' };
     defs[k] = info;
     save();
-    return { ...word, ...info };
+    return withInfo(word, info);
   } catch {
-    return { ...word, def: '', missing: true };
+    return word.def ? word : { ...word, def: '', missing: true };
   }
 }
 
@@ -64,11 +67,13 @@ export function viewSpellingHome() {
       h('div', {}, h('h2', {}, 'Become a spelling champion'), h('p', { class: 'muted' }, `Best Bee Challenge streak: ${p.spelling.bestChallenge} 🏆`)),
       h('a', { class: 'btn alt', href: '#/spelling/import' }, '➕ Import word list')));
   if (!speechSupported()) main.append(h('p', { class: 'warn' }, 'This browser cannot speak words out loud. Try Chrome, Edge or Safari.'));
-  const grid = h('div', { class: 'list-grid' });
+  const groups = new Map();
   for (const list of allLists()) {
+    const g = list.group || 'My lists';
+    if (!groups.has(g)) groups.set(g, h('div', { class: 'list-grid' }));
     const s = listStats(list);
     const total = list.words.length || 1;
-    grid.append(h('div', { class: 'list-card card' },
+    groups.get(g).append(h('div', { class: 'list-card card' },
       h('div', { class: 'list-head' }, h('span', { class: 'list-emoji' }, list.emoji || '📝'), h('div', {}, h('h3', {}, list.name), h('p', { class: 'muted small' }, `${list.words.length} words`))),
       h('div', { class: 'meter', title: `${s.mastered} mastered, ${s.learning} learning, ${s.new} new` },
         h('span', { class: 'm-mastered', style: { width: `${(s.mastered / total) * 100}%` } }),
@@ -85,7 +90,7 @@ export function viewSpellingHome() {
         rerender();
       } }, 'Delete list')));
   }
-  main.append(grid);
+  for (const [g, grid] of groups) main.append(h('section', { class: 'unit' }, h('h3', { class: 'unit-title' }, g), grid));
 }
 
 // ---------- Word card (shared by practice & challenge) ----------
@@ -134,7 +139,7 @@ function wordCard(word, { onResult, allowHints = true }) {
     done = true;
     input.disabled = true;
     checkBtn.remove();
-    const ok = isCorrectSpelling(input.value, word.w);
+    const ok = matchesWord(input.value, word);
     input.classList.add(ok ? 'ok' : 'bad');
     onResult({ ok, hinted: hinted > 0, typed: input.value, fb, card, input });
   };
@@ -172,7 +177,8 @@ export function viewPractice({ list: listId }) {
   }
   const now = Date.now();
   const due = list.words.filter(w => isDue(cardOf(w.w), now)).sort((a, b) => cardOf(a.w).due - cardOf(b.w).due).slice(0, SESSION);
-  const fresh = shuffle(list.words.filter(w => cardStatus(cardOf(w.w)) === 'new')).slice(0, Math.max(3, Math.min(MAX_NEW, SESSION - due.length)));
+  // New words come from the front of the list (it is ordered by the publisher), mixed within a small window.
+  const fresh = shuffle(list.words.filter(w => cardStatus(cardOf(w.w)) === 'new').slice(0, 25)).slice(0, Math.max(3, Math.min(MAX_NEW, SESSION - due.length)));
   let items = [...due, ...fresh].slice(0, SESSION);
   let extraNote = '';
   if (!items.length) {
@@ -224,7 +230,7 @@ export function viewPractice({ list: listId }) {
           const msg = h('p', { class: 'muted small' }, 'Type the correct spelling once to lock it into your memory.');
           fix.addEventListener('keydown', e => {
             if (e.key !== 'Enter') return;
-            if (isCorrectSpelling(fix.value, item.word.w)) {
+            if (matchesWord(fix.value, item.word)) {
               sfx.click();
               go();
             } else {

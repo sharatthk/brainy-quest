@@ -26,8 +26,8 @@ test('english units are well formed', () => {
   }
 });
 
-test('spelling lists are well formed', () => {
-  for (const l of BUILTIN_LISTS) {
+test('starter spelling lists are well formed', () => {
+  for (const l of BUILTIN_LISTS.filter(x => x.id.startsWith('starter-'))) {
     const seen = new Set();
     for (const w of l.words) {
       assert.ok(w.w && w.def && w.sent, `${l.id} ${w.w}`);
@@ -80,4 +80,24 @@ test('spelling helpers', () => {
   assert.equal(words[1].def, 'a yellow fruit');
   assert.equal(blankWord('The garden is beautiful in spring.', 'beautiful'), 'The garden is _____ in spring.');
   assert.equal(blankWord('Use a knife to cut.', 'knife'), 'Use a _____ to cut.');
+});
+
+test('2024 Words of the Champions lists are complete and clean', async () => {
+  const { WOC_2024 } = await import('../js/spelling/woc2024.js');
+  const { normalizeSpelling } = await import('../js/spelling/logic.js');
+  assert.equal(WOC_2024.length, 6);
+  const all = WOC_2024.flatMap(l => l.words);
+  assert.ok(all.length >= 4000, `expected about 4000 words, got ${all.length}`);
+  for (const l of WOC_2024.filter(x => x.id.endsWith('-study'))) assert.equal(l.words.length, 150, l.name);
+  assert.equal(new Set(all.map(w => normalizeSpelling(w.w))).size, all.length, 'no duplicate words');
+  for (const w of all) assert.match(w.w, /^\p{L}[\p{L}' .-]*$/u, `bad entry: ${w.w}`);
+  assert.ok(all.filter(w => w.alts).length >= 40, 'alternate spellings parsed');
+});
+
+test('alternate spellings are parsed and accepted', async () => {
+  const { parseWordList, matchesWord } = await import('../js/spelling/logic.js');
+  const [w] = parseWordList('practice** OR practise | noun: repeated exercise.');
+  assert.deepEqual([w.w, w.alts, w.def], ['practice', ['practise'], 'noun: repeated exercise.']);
+  assert.ok(matchesWord('practise', w) && matchesWord('Practice', w) && !matchesWord('practis', w));
+  assert.ok(matchesWord('deja vu', { w: 'déjà vu' }));
 });
