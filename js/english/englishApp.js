@@ -1,0 +1,253 @@
+// Word Wizard: English lessons, quizzes and mistake review.
+import { h } from '../ui.js';
+import { screen, stars, sessionFrame, resultsView, cheer, praise } from '../views/common.js';
+import { profile, save } from '../store.js';
+import { ENGLISH_SECTIONS, ENGLISH_UNITS, unitById, cleanWord, normalizeText } from './content.js';
+import { newCard, grade, isDue } from '../shared/mastery.js';
+import { award, recordAnswer, finishSession } from '../shared/rewards.js';
+import { sfx } from '../shared/sound.js';
+import { speak, speechSupported, stopSpeaking } from '../shared/speech.js';
+import { shuffle } from '../shared/util.js';
+import { render as rerender } from '../router.js';
+
+const QUIZ_LEN = 8;
+const unitRec = id => (profile().english.units[id] ||= { stars: 0, best: 0, attempts: 0, lessonSeen: false });
+const starsForScore = pct => (pct >= 1 ? 3 : pct >= 0.8 ? 2 : pct >= 0.6 ? 1 : 0);
+
+function dueReviews(p) {
+  const now = Date.now();
+  return Object.entries(p.english.review)
+    .filter(([, c]) => isDue(c, now) && c.box < 3)
+    .map(([key]) => {
+      const [uid, idx] = key.split('#');
+      const u = unitById(uid);
+      return u && u.questions[+idx] ? { unit: u, idx: +idx, key } : null;
+    })
+    .filter(Boolean);
+}
+
+export function viewEnglishHome() {
+  const p = profile();
+  const reviews = dueReviews(p);
+  const passed = ENGLISH_UNITS.filter(u => (p.english.units[u.id]?.stars || 0) > 0).length;
+  const nextUp = ENGLISH_UNITS.find(u => !(p.english.units[u.id]?.stars >= 2));
+  const main = screen({ title: 'Word Wizard', back: '#/' });
+  main.append(
+    h('div', { class: 'quest-head' }, h('div', {}, h('h2', {}, 'Learn, then quiz yourself'), h('p', { class: 'muted' }, `${passed} of ${ENGLISH_UNITS.length} units passed. Get 100% for 3 ★.`))),
+    h('div', { class: 'quick-row' },
+      nextUp ? h('a', { class: 'quick mix', href: `#/english/unit/${nextUp.id}` }, h('span', { class: 'quick-emoji' }, nextUp.emoji), h('span', {}, h('b', {}, 'Next up'), h('small', {}, nextUp.title))) : null,
+      h('a', { class: `quick gym ${reviews.length ? '' : 'dim'}`, href: reviews.length ? '#/english/review' : null, 'aria-disabled': reviews.length ? null : 'true' },
+        h('span', { class: 'quick-emoji' }, '🔁'), h('span', {}, h('b', {}, `Fix my mistakes (${reviews.length})`), h('small', {}, reviews.length ? 'Questions you missed, ready for another try' : 'Nothing to review right now')))));
+  for (const sec of ENGLISH_SECTIONS) {
+    const units = ENGLISH_UNITS.filter(u => u.section === sec.id);
+    main.append(h('section', { class: 'unit' },
+      h('h3', { class: 'unit-title' }, `${sec.emoji} ${sec.title}`),
+      h('div', { class: 'skill-grid' }, units.map(u => {
+        const r = p.english.units[u.id];
+        return h('a', { class: `skill eng ${r?.stars === 3 ? 'gold' : ''}`, href: `#/english/unit/${u.id}` },
+          h('span', { class: 'skill-emoji' }, u.emoji), h('span', { class: 'skill-title' }, u.title), stars(r?.stars || 0));
+      }))));
+  }
+}
+
+export function viewLesson({ id }) {
+  const u = unitById(id);
+  if (!u) {
+    location.hash = '/english';
+    return;
+  }
+  let i = 0;
+  const main = screen({ title: u.title, back: '#/english' });
+  const body = h('div', { class: 'lesson card' });
+  main.append(body);
+  const show = () => {
+    const l = u.lessons[i];
+    const content = h('div', { class: 'lesson-body', html: l.body });
+    body.replaceChildren(
+      h('div', { class: 'lesson-top' }, h('span', { class: 'lesson-count' }, `${u.emoji} Card ${i + 1} of ${u.lessons.length}`),
+        speechSupported() ? h('button', { class: 'icon-btn', title: 'Read aloud', 'aria-label': 'Read aloud', onclick: () => speak(`${l.title}. ${content.innerText}`, { rate: 0.95 }) }, '🔊') : null),
+      h('h2', {}, l.title), content,
+      h('div', { class: 'row spread' },
+        h('button', { class: 'btn alt', disabled: i === 0, onclick: () => { i--; stopSpeaking(); show(); } }, '‹ Back'),
+        i < u.lessons.length - 1
+          ? h('button', { class: 'btn', onclick: () => { i++; stopSpeaking(); show(); } }, 'Next ›')
+          : h('a', { class: 'btn big', href: `#/english/quiz/${u.id}`, onclick: () => { unitRec(u.id).lessonSeen = true; save(); } }, '🎯 Start quiz')));
+  };
+  show();
+  return stopSpeaking;
+}
+
+export function viewQuiz({ id }) {
+  const u = unitById(id);
+  if (!u) {
+    location.hash = '/english';
+    return;
+  }
+  const order = shuffle(u.questions.map((_, k) => k)).slice(0, QUIZ_LEN);
+  return runQuiz({ title: `Quiz: ${u.title}`, back: `#/english/unit/${u.id}`, items: order.map(k => ({ unit: u, idx: k, key: `${u.id}#${k}` })), unit: u });
+}
+
+export function viewReview() {
+  const items = shuffle(dueReviews(profile())).slice(0, 10);
+  if (!items.length) {
+    location.hash = '/english';
+    return;
+  }
+  return runQuiz({ title: 'Fix my mistakes', back: '#/english', items, review: true });
+}
+
+function runQuiz({ title, back, items, unit, review = false }) {
+  const f = sessionFrame({ title, back });
+  let i = 0, correct = 0, combo = 0, coins = 0, xp = 0;
+  let onKey = null;
+
+  function next() {
+    onKey = null;
+    f.setProgress(i, items.length);
+    if (i >= items.length) return finish();
+    ask(items[i]);
+  }
+
+  function ask(item) {
+    const q = item.unit.questions[item.idx];
+    const card = h('div', { class: 'q-card card' }, h('div', { class: 'q-tag' }, `${item.unit.emoji} ${item.unit.title}`));
+    f.stage.replaceChildren(card);
+    if (q.p) card.append(h('blockquote', { class: 'passage' }, q.p));
+    card.append(h('p', { class: 'q-prompt' }, q.q));
+    const fb = h('div', { class: 'feedback' });
+    let advanced = false;
+    const go = () => {
+      if (advanced) return;
+      advanced = true;
+      i++;
+      next();
+    };
+    let answered = false;
+    const done = (ok, anchor) => {
+      answered = true;
+      settle(item, ok, anchor);
+      if (ok) {
+        fb.replaceChildren(h('div', { class: 'fb good' }, `✅ ${praise()}`, q.e ? h('p', { class: 'fb-hint' }, q.e) : null));
+        setTimeout(go, 1500);
+      } else {
+        const btn = h('button', { class: 'btn big', onclick: go }, 'Got it ›');
+        fb.replaceChildren(h('div', { class: 'fb bad' }, h('p', { class: 'fb-title' }, `The answer: ${Array.isArray(q.a) ? q.a.join(', ') : q.a}`), q.e ? h('p', { class: 'fb-hint' }, `💡 ${q.e}`) : null, h('div', { class: 'row center' }, btn)));
+        btn.focus();
+        onKey = e => e.key === 'Enter' && go();
+      }
+    };
+
+    if (q.t === 'mc') {
+      const box = h('div', { class: `choices ${q.c.length <= 3 ? 'few' : ''} ${q.c.some(c => c.length > 22) ? 'wide' : ''}` });
+      shuffle(q.c).forEach((c, k) => {
+        const b = h('button', { class: 'choice', 'data-key': String(k + 1) }, c);
+        b.addEventListener('click', () => {
+          if (answered) return;
+          box.querySelectorAll('button').forEach(x => {
+            x.disabled = true;
+            if (x.textContent === q.a) x.classList.add('ok');
+          });
+          const ok = c === q.a;
+          if (!ok) b.classList.add('bad');
+          done(ok, b);
+        });
+        box.append(b);
+      });
+      card.append(box);
+      onKey = e => box.querySelector(`[data-key="${e.key}"]:not([disabled])`)?.click();
+    } else if (q.t === 'tap') {
+      const want = new Set(q.a.map(w => cleanWord(w).toLowerCase()));
+      const words = q.s.split(/\s+/);
+      const sentence = h('div', { class: 'tap-sentence' }, words.map(w => h('button', { class: 'tap-word', onclick: e => !answered && e.currentTarget.classList.toggle('picked') }, w)));
+      const check = h('button', { class: 'btn big', onclick: () => {
+        if (answered) return;
+        const btns = [...sentence.children];
+        if (!btns.some(b => b.classList.contains('picked'))) {
+          fb.replaceChildren(h('p', { class: 'muted' }, 'Tap one or more words first.'));
+          return;
+        }
+        let ok = true;
+        btns.forEach(b => {
+          const isAns = want.has(cleanWord(b.textContent).toLowerCase());
+          const picked = b.classList.contains('picked');
+          if (isAns !== picked) ok = false;
+          b.classList.add(isAns ? (picked ? 'ok' : 'missed') : picked ? 'bad' : 'plain');
+          b.disabled = true;
+        });
+        check.remove();
+        done(ok, sentence);
+      } }, 'Check ✓');
+      card.append(h('p', { class: 'q-hint' }, 'Tap the words, then press Check.'), sentence, h('div', { class: 'row center' }, check));
+    } else {
+      const parts = q.s.split('___');
+      const inp = h('input', { class: 'answer-input text', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', 'aria-label': 'your answer' });
+      const check = () => {
+        if (answered || !inp.value.trim()) return;
+        inp.disabled = true;
+        const ok = q.a.some(a => normalizeText(a) === normalizeText(inp.value));
+        inp.classList.add(ok ? 'ok' : 'bad');
+        checkBtn.remove();
+        done(ok, inp);
+      };
+      inp.addEventListener('keydown', e => e.key === 'Enter' && check());
+      const checkBtn = h('button', { class: 'btn big', onclick: check }, 'Check ✓');
+      card.append(h('p', { class: 'fill-sentence' }, parts[0], inp, parts[1] || ''), h('div', { class: 'row center' }, checkBtn));
+      inp.focus();
+    }
+    card.append(fb);
+  }
+
+  function settle(item, ok, anchor) {
+    const p = profile();
+    const card = p.english.review[item.key];
+    if (!ok) {
+      p.english.review[item.key] = grade(card || newCard(), false);
+    } else if (card) {
+      grade(card, true);
+      if (card.box >= 3) delete p.english.review[item.key];
+    }
+    save();
+    if (ok) {
+      correct++;
+      combo++;
+      const c = 1 + (combo % 5 === 0 ? 2 : 0);
+      coins += c;
+      xp += 3;
+      award({ coins: c, xp: 3 });
+      cheer(anchor, c, combo);
+    } else {
+      combo = 0;
+      sfx.wrong();
+    }
+    recordAnswer(ok, combo);
+    f.setCombo(combo);
+  }
+
+  function finish() {
+    const extra = [];
+    if (unit) {
+      const r = unitRec(unit.id);
+      const before = r.stars;
+      const pct = correct / items.length;
+      r.attempts++;
+      r.best = Math.max(r.best, pct);
+      r.stars = Math.max(r.stars, starsForScore(pct));
+      save();
+      if (r.stars > before) extra.push(h('div', { class: 'star-up' }, h('p', {}, 'New stars!'), stars(r.stars)));
+    }
+    const res = finishSession({ subject: 'english', correct, total: items.length });
+    resultsView(f.stage, {
+      correct, total: items.length, coins: coins + res.bonusCoins, xp: xp + res.bonusXp, perfect: res.perfect, unlocked: res.unlocked, extra,
+      again: () => rerender(), backHref: '#/english', backLabel: 'All units',
+    });
+  }
+
+  const keyHandler = e => {
+    if (!onKey || e.target instanceof HTMLInputElement) return;
+    if (e.key === 'Enter' && e.target instanceof HTMLButtonElement) return;
+    onKey(e);
+  };
+  document.addEventListener('keydown', keyHandler);
+  next();
+  return () => document.removeEventListener('keydown', keyHandler);
+}
