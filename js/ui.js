@@ -14,6 +14,10 @@ export function h(tag, props = {}, ...children) {
     if (c == null || c === false) continue;
     el.append(c instanceof Node ? c : String(c));
   }
+  // Every form field gets a name (needed for browser autofill and accessibility audits).
+  if (/^(input|select|textarea)$/.test(tag) && !el.name && !el.id) {
+    el.name = (props?.['aria-label'] || props?.placeholder || tag).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
   return el;
 }
 
