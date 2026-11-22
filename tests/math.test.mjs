@@ -116,3 +116,15 @@ test('answer checking edge cases', () => {
   assert.ok(!checkAnswer(div, { q: '9', r: '' }));
   assert.deepEqual(dls(305), [5, 0, 3]);
 });
+
+test('speed challenge scoring', async () => {
+  const { pointsFor, multiplier, coinsFor } = await import('../js/math/scoring.js');
+  assert.equal(multiplier(1), 1);
+  assert.equal(multiplier(5), 2);
+  assert.equal(multiplier(10), 3);
+  assert.equal(multiplier(99), 4);
+  assert.deepEqual(pointsFor({ tier: 1, seconds: 2, kind: 'input', streak: 1 }), { points: 15, quick: true });
+  assert.deepEqual(pointsFor({ tier: 3, seconds: 6, kind: 'column', streak: 5 }), { points: 70, quick: true });
+  assert.deepEqual(pointsFor({ tier: 2, seconds: 9, kind: 'column', streak: 0 }), { points: 20, quick: false });
+  assert.equal(coinsFor(410), 21);
+});

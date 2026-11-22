@@ -34,6 +34,7 @@ export const sfx = {
   wrong: play(() => { tone(250, 0, 0.18, 'triangle', 0.1); tone(200, 0.12, 0.25, 'triangle', 0.1); }),
   coin: play(() => { tone(988, 0, 0.07, 'square', 0.04); tone(1319, 0.06, 0.14, 'square', 0.04); }),
   click: play(() => tone(520, 0, 0.05, 'sine', 0.06)),
+  tick: play(() => tone(1100, 0, 0.05, 'square', 0.03)),
   levelUp: play(() => [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.11, 0.22, 'triangle'))),
   fanfare: play(() => [784, 784, 784, 1047].forEach((f, i) => tone(f, i * 0.13, i === 3 ? 0.5 : 0.12, 'triangle'))),
 };

@@ -17,12 +17,12 @@ function defaults() {
     achievements: {},
     stats: {
       answered: 0, correct: 0, sessions: 0, perfectSessions: 0, bestCombo: 0, coinsEarned: 0,
-      purchases: 0, mathSessions: 0, englishSessions: 0, spellingSessions: 0,
+      purchases: 0, mathSessions: 0, englishSessions: 0, spellingSessions: 0, speedRecords: 0,
     },
-    math: { skills: {} },
+    math: { skills: {}, speed: {} },
     english: { units: {}, review: {} },
     spelling: { cards: {}, bestChallenge: 0 },
-    settings: { unlockAll: false, voiceURI: '', rate: 0.85, sound: true, dailyGoal: 60 },
+    settings: { unlockAll: false, voiceURI: '', rate: 0.85, sound: true, dailyGoal: 60, scratch: false },
   };
 }
 

@@ -2,9 +2,9 @@
 import { h, modal, toast } from '../ui.js';
 import { screen, stars, sessionFrame, resultsView, cheer, praise } from '../views/common.js';
 import { profile, save } from '../store.js';
-import { SKILLS, UNITS, skillById, isUnlocked, diagnose, checkAnswer, answerText, frac } from './skills.js';
+import { SKILLS, UNITS, skillById, isUnlocked, diagnose, checkAnswer, answerText } from './skills.js';
 import { emptyRec, record, recentAccuracy } from '../shared/mastery.js';
-import { columnWidget } from './column.js';
+import { buildQuestion, isEmptyAnswer } from './question.js';
 import { runGuided } from './guided.js';
 import { award, recordAnswer, finishSession } from '../shared/rewards.js';
 import { sfx } from '../shared/sound.js';
@@ -24,7 +24,8 @@ export function viewMap() {
       h('div', {}, h('h2', {}, 'Pick your challenge'), h('p', { class: 'muted' }, `${totalStars} of ${SKILLS.length * 3} stars collected. Earn 2 ★ to unlock the next skill.`))),
     h('div', { class: 'quick-row' },
       h('a', { class: 'quick mix', href: '#/math/mix' }, h('span', { class: 'quick-emoji' }, '🎲'), h('span', {}, h('b', {}, 'Daily Mix'), h('small', {}, 'A smart mix of new and tricky skills'))),
-      h('a', { class: 'quick gym', href: '#/math/gym' }, h('span', { class: 'quick-emoji' }, '🏋️'), h('span', {}, h('b', {}, 'Carry & Borrow Gym'), h('small', {}, 'Coach-guided column practice')))));
+      h('a', { class: 'quick gym', href: '#/math/gym' }, h('span', { class: 'quick-emoji' }, '🏋️'), h('span', {}, h('b', {}, 'Carry & Borrow Gym'), h('small', {}, 'Coach-guided column practice'))),
+      h('a', { class: 'quick speed', href: '#/math/speed' }, h('span', { class: 'quick-emoji' }, '⏱️'), h('span', {}, h('b', {}, 'Speed Challenge'), h('small', {}, 'Race the clock for big points')))));
 
   for (const u of UNITS) {
     const list = SKILLS.filter(s => s.unit === u.id);
@@ -159,93 +160,31 @@ export function viewPlay({ mode, skill: skillId }) {
     }
 
     const fb = h('div', { class: 'feedback' });
-    let getValue, focusFirst, lockInput, widget;
-    if (pr.kind === 'column') {
-      widget = columnWidget(pr, { onEnter: () => submit() });
-      card.append(h('p', { class: 'q-hint' }, 'Type from right to left. Use the little boxes on top for carries and borrows.'), widget.el);
-      getValue = () => widget.value();
-      focusFirst = () => widget.focus();
-      lockInput = () => widget.lock();
-    } else if (pr.kind === 'choice') {
-      card.append(h('div', { class: 'q-prompt', html: pr.prompt }));
-      if (pr.visual) card.append(h('div', { class: 'viz-wrap', html: pr.visual }));
-      const box = h('div', { class: `choices ${pr.choices.length <= 3 ? 'few' : ''}` });
-      pr.choices.forEach((c, i) => {
-        const b = h('button', { class: 'choice', onclick: () => submit(c, b) });
-        if (pr.fracChoices && c.includes('/')) b.innerHTML = frac(...c.split('/'));
-        else b.textContent = c;
-        b.dataset.key = String(i + 1);
-        box.append(b);
-      });
-      card.append(box);
-      lockInput = () => box.querySelectorAll('button').forEach(b => (b.disabled = true));
-      focusFirst = () => {};
-      onKey = e => {
-        const b = box.querySelector(`[data-key="${e.key}"]`);
-        if (b && !b.disabled) b.click();
-      };
-    } else {
-      card.append(h('div', { class: 'q-prompt', html: pr.kind === 'division' ? `<span class="big-num">${pr.prompt} = ?</span>` : pr.prompt }));
-      if (pr.visual) card.append(h('div', { class: 'viz-wrap', html: pr.visual }));
-      const mk = (label, cls = '') => {
-        const i = h('input', { class: `answer-input ${cls}`, inputmode: pr.answerType === 'decimal' ? 'decimal' : 'numeric', autocomplete: 'off', 'aria-label': label });
-        i.addEventListener('keydown', e => e.key === 'Enter' && submit());
-        return i;
-      };
-      if (pr.kind === 'division') {
-        const q = mk('quotient'), r = mk('remainder', 'small');
-        card.append(h('div', { class: 'row center' }, q, h('span', { class: 'r-label' }, 'R'), r), h('p', { class: 'q-hint' }, 'R = remainder (leave it empty if nothing is left over)'));
-        getValue = () => ({ q: q.value, r: r.value });
-        focusFirst = () => q.focus();
-        lockInput = () => [q, r].forEach(x => (x.disabled = true));
-      } else if (pr.kind === 'fraction') {
-        const n = mk('numerator', 'small'), d = mk('denominator', 'small');
-        card.append(h('div', { class: 'frac-input' }, n, h('div', { class: 'frac-line' }), d));
-        getValue = () => ({ n: n.value, d: d.value });
-        focusFirst = () => n.focus();
-        lockInput = () => [n, d].forEach(x => (x.disabled = true));
-      } else {
-        const i = mk('answer');
-        card.append(h('div', { class: 'row center' }, i, pr.suffix ? h('span', { class: 'r-label' }, pr.suffix) : null));
-        getValue = () => i.value;
-        focusFirst = () => i.focus();
-        lockInput = () => (i.disabled = true);
-      }
-    }
-    const checkBtn = pr.kind === 'choice' ? null : h('button', { class: 'btn big', onclick: () => submit() }, 'Check ✓');
-    if (checkBtn) card.append(h('div', { class: 'row center' }, checkBtn));
-    card.append(fb);
-    focusFirst();
-
     let done = false;
-    function submit(choiceVal, choiceBtn) {
+    const qn = buildQuestion(card, pr, { onSubmit: submit });
+    card.append(fb);
+    qn.focus();
+    onKey = qn.onKey;
+
+    function submit(val, choiceBtn) {
       if (done) return;
-      const val = pr.kind === 'choice' ? choiceVal : getValue();
-      const empty = val == null || (typeof val === 'string' && !val.trim()) || (typeof val === 'object' && !Object.values(val).some(v => String(v).trim()));
-      if (empty) {
-        fb.replaceChildren(h('p', { class: 'muted' }, val === null ? 'Fill in every digit (no gaps).' : 'Type your answer first.'));
+      if (isEmptyAnswer(val)) {
+        fb.replaceChildren(h('p', { class: 'muted' }, 'Type your answer first.'));
         return;
       }
       done = true;
-      lockInput();
-      checkBtn?.remove();
+      qn.lock();
+      qn.checkBtn?.remove();
       const ok = checkAnswer(pr, val);
       const diag = ok ? null : diagnose(pr, val);
-      if (pr.kind === 'choice') {
-        card.querySelectorAll('.choice').forEach((b, i) => {
-          if (pr.choices[i] === pr.answer) b.classList.add('ok');
-          else if (b === choiceBtn) b.classList.add('bad');
-        });
-      }
+      qn.reveal(choiceBtn);
       settle(item, ok, diag, false, choiceBtn || card);
       if (ok) {
         fb.replaceChildren(h('div', { class: 'fb good' }, `✅ ${praise()}`));
-        if (widget) widget.reveal();
         onKey = null;
         setTimeout(go, 1000);
         return;
       }
-      if (widget) widget.reveal();
       const nextBtn = h('button', { class: 'btn big', onclick: go }, 'Got it ›');
       fb.replaceChildren(h('div', { class: 'fb bad' },
         h('p', { class: 'fb-title' }, `Not quite. The answer is ${answerText(pr)}.`),

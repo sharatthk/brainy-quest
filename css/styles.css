@@ -140,13 +140,15 @@ section + section, .card + .card { margin-top: 1rem; }
 /* ---------- Skill maps ---------- */
 .quest-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
 .quest-head h2 { margin: 0; }
-.quick-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.5rem; }
+.quick-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 0.5rem; }
 .quick { display: flex; align-items: center; gap: 0.8rem; padding: 1rem 1.1rem; border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); transition: transform 0.12s; }
 .quick:hover { transform: translateY(-2px); }
 .quick b { display: block; font-size: 1.1rem; }
 .quick small { color: var(--muted); }
 .quick-emoji { font-size: 2.2rem; }
 .quick.mix { background: linear-gradient(120deg, color-mix(in srgb, var(--brand2) 35%, var(--card)), var(--card)); }
+.quick.gym { background: linear-gradient(120deg, color-mix(in srgb, var(--good) 22%, var(--card)), var(--card)); }
+.quick.speed { background: linear-gradient(120deg, color-mix(in srgb, var(--bad) 22%, var(--card)), var(--card)); }
 .quick.dim { opacity: 0.6; pointer-events: none; }
 .unit { margin-top: 1.4rem; }
 .unit-title { display: flex; justify-content: space-between; align-items: center; font-size: 1.2rem; }
@@ -197,9 +199,9 @@ section + section, .card + .card { margin-top: 1rem; }
 }
 .answer-input.small { width: 5rem; }
 .answer-input.text { width: min(22rem, 100%); font-size: 1.5rem; }
-.answer-input:focus, .cell:focus, .scratch:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 25%, transparent); }
-.answer-input.ok, .cell.ok { border-color: var(--good); background: var(--good-bg); }
-.answer-input.bad, .cell.bad { border-color: var(--bad); background: var(--bad-bg); }
+.answer-input:focus, .col-answer:focus, .scratch:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 25%, transparent); }
+.answer-input.ok, .col-answer.ok { border-color: var(--good); background: var(--good-bg); }
+.answer-input.bad, .col-answer.bad { border-color: var(--bad); background: var(--bad-bg); }
 .r-label { font-size: 1.6rem; font-weight: 800; }
 .frac-input { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
 .frac-line { width: 6rem; height: 4px; background: var(--ink); border-radius: 2px; }
@@ -228,18 +230,32 @@ section + section, .card + .card { margin-top: 1rem; }
 .big-msg { font-size: 1.15rem; font-weight: 700; }
 
 /* ---------- Column arithmetic ---------- */
-.col-wrap { display: flex; justify-content: center; padding: 0.4rem 0; }
-.col-grid { display: grid; grid-auto-rows: auto; gap: 0.2rem 0.25rem; align-items: center; justify-items: center; }
+.col-wrap { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding: 0.4rem 0; }
+.col-grid { --gap: 0.25rem; display: grid; grid-auto-rows: auto; gap: 0.2rem var(--gap); align-items: center; justify-items: center; }
+.col-grid.hide-scratch .scratch { display: none; }
+.scratch.unused { visibility: hidden; }
 .digit { font-size: 2.1rem; font-weight: 800; width: var(--cell); text-align: center; font-variant-numeric: tabular-nums; border-radius: 10px; transition: background 0.2s; }
 .digit.op { color: var(--brand); }
 .digit.struck { text-decoration: line-through; text-decoration-color: var(--bad); text-decoration-thickness: 3px; color: var(--muted); }
 .digit.fix { color: var(--good); font-size: 1.6rem; }
 .rule { height: 4px; width: 100%; background: var(--ink); border-radius: 2px; margin: 0.15rem 0; }
-.cell { width: var(--cell); height: calc(var(--cell) * 1.2); font-size: 1.9rem; font-weight: 800; text-align: center; border: 3px solid var(--line); border-radius: 12px; background: var(--card); padding: 0; }
+/* One answer box. letter-spacing makes each digit advance exactly one column (cell + gap); the
+   negative side margins put each digit's center under its column center. */
+.col-answer {
+  --ls: calc(var(--cell) + var(--gap) - 1ch);
+  --edge: calc((var(--cell) - 1ch) / 2 + var(--gap) + 3px);
+  justify-self: stretch; width: auto; min-width: 0; box-sizing: border-box;
+  margin: 0.15rem calc(-1 * var(--edge)); padding: 0;
+  height: calc(var(--cell) * 1.2);
+  font: inherit; font-size: 2.1rem; font-weight: 800; font-variant-numeric: tabular-nums;
+  letter-spacing: var(--ls); text-align: right;
+  border: 3px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink);
+}
+.col-answer[readonly] { background: transparent; }
+.scratch-toggle { font-size: 0.9rem; }
 .scratch { width: calc(var(--cell) * 0.82); height: calc(var(--cell) * 0.75); font-size: 1rem; font-weight: 800; text-align: center; border: 2px dashed var(--line); border-radius: 8px; background: transparent; color: var(--brand); padding: 0; }
 .scratch.revealed { border-style: solid; border-color: var(--brand); background: color-mix(in srgb, var(--brand) 12%, var(--card)); }
 .hl-col { background: color-mix(in srgb, var(--brand2) 30%, transparent); }
-.cell.hl-col { border-color: var(--brand); }
 .popin { animation: popin 0.3s; }
 .coach-tag { font-weight: 700; color: var(--eng); }
 .coach { width: 100%; max-width: 520px; background: var(--bg2); border-radius: 18px; padding: 0.9rem; }
@@ -373,6 +389,46 @@ td .stars { font-size: 0.95rem; }
 @keyframes hover { to { transform: translateY(-6px) rotate(6deg); } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
 
+/* ---------- Speed Challenge ---------- */
+.topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0.6rem; }
+.topic-chip { display: flex; align-items: center; gap: 0.5rem; padding: 0.7rem 0.9rem; border: 3px solid transparent; border-radius: 14px; background: var(--card); box-shadow: var(--shadow); font-weight: 700; text-align: left; }
+.topic-chip.on, .timer-card.on { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 12%, var(--card)); }
+.topic-chip:disabled { opacity: 0.5; cursor: not-allowed; }
+.topic-emoji { font-size: 1.5rem; }
+.timer-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; }
+.timer-card { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; padding: 0.9rem 0.5rem; border: 3px solid transparent; border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); }
+.timer-card b { font-size: 1.15rem; }
+.timer-card small { color: var(--muted); }
+.timer-emoji { font-size: 2rem; }
+.timer-card .timer-best { color: var(--brand); font-weight: 700; }
+.leaderboard { margin: 1rem 0; text-align: left; }
+.results .leaderboard { width: min(26rem, 100%); margin: 1rem auto; }
+.leaderboard h3 { margin: 0 0 0.5rem; }
+.leaderboard ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; }
+.leaderboard li { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.6rem; border-radius: 10px; }
+.leaderboard li.me { background: color-mix(in srgb, var(--brand2) 25%, transparent); }
+.lb-rank { width: 2rem; text-align: center; font-size: 1.2rem; }
+.lb-avatar { font-size: 1.4rem; }
+.lb-name { flex: 1; font-weight: 700; }
+.speed-hud { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1rem; }
+.sp-box { display: flex; flex-direction: column; align-items: center; min-width: 4.2rem; padding: 0.2rem 0.6rem; border-radius: 12px; background: var(--card); box-shadow: var(--shadow); }
+.sp-box small { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.sp-box b { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.sp-time.urgent { color: var(--bad); animation: pulse 0.5s infinite alternate; }
+.sp-score.bump { animation: bump 0.35s ease; }
+.sp-progress { height: 14px; }
+.sp-fill { width: 100%; transition: width 0.1s linear; background: linear-gradient(90deg, var(--brand2), var(--brand)); }
+.sp-fill.urgent { background: linear-gradient(90deg, var(--bad), #ff8a8d); }
+.sp-mult { min-width: 3rem; text-align: center; font-weight: 900; font-size: 1.3rem; padding: 0.3rem 0.5rem; border-radius: 12px; background: var(--bg2); color: var(--muted); }
+.sp-mult.m2 { background: var(--brand2); color: #3a2a00; }
+.sp-mult.m3 { background: var(--brand); color: #fff; animation: pulse 0.8s infinite alternate; }
+.sp-mult.m4 { background: var(--bad); color: #fff; animation: pulse 0.5s infinite alternate; }
+.countdown { display: grid; place-items: center; min-height: 14rem; font-size: 6rem; font-weight: 900; color: var(--brand); }
+.countdown.pulse { animation: popin 0.4s ease; }
+.sp-pop { font-size: 1.3rem; font-weight: 900; animation: popin 0.25s; }
+.sp-final { font-size: 3.4rem; font-weight: 900; margin: 0; color: var(--brand); }
+.sp-final small { font-size: 1.1rem; color: var(--muted); }
+
 /* ---------- Small screens ---------- */
 @media (max-width: 720px) {
   .hub { grid-template-columns: 1fr; }
@@ -381,6 +437,9 @@ td .stars { font-size: 0.95rem; }
   .hero { grid-template-columns: auto 1fr; }
   .hero-goal { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 0.8rem; }
   .quick-row { grid-template-columns: 1fr; }
+  .timer-row { gap: 0.5rem; }
+  .speed-hud { gap: 0.5rem; }
+  .sp-box { min-width: 3.4rem; }
   .small-hub { grid-template-columns: repeat(3, 1fr); }
   .topbar-title { font-size: 1.05rem; }
   .combo { min-width: 0; }

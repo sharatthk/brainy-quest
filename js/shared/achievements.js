@@ -8,6 +8,8 @@ const skillStars = (p, id) => p.math.skills[id]?.stars || 0;
 const engDone = (p, min = 1) => ENGLISH_UNITS.filter(u => (p.english.units[u.id]?.stars || 0) >= min).length;
 const spellMastered = p => Object.values(p.spelling.cards).filter(c => c.box >= MASTERED_BOX).length;
 const spellRight = p => Object.values(p.spelling.cards).reduce((s, c) => s + c.right, 0);
+// Speed Challenge records, optionally only for one timer length (keys look like "add-60").
+const speedRuns = (p, secs) => Object.entries(p.math.speed || {}).filter(([k]) => !secs || k.endsWith(`-${secs}`)).map(([, r]) => r);
 const levelOf = xp => {
   let n = 1;
   while (xp >= 25 * (n + 1) * n) n++;
@@ -38,6 +40,10 @@ export const ACHIEVEMENTS = [
   A('div-detective', '🔎', 'Division Detective', 'Earn 2 stars on remainders', p => skillStars(p, 'div-2x1r') >= 2, 30),
   A('fraction-fan', '🍕', 'Fraction Fan', 'Earn a star on any fraction skill', p => SKILLS.some(s => s.unit === 'frac' && skillStars(p, s.id) >= 1)),
   A('percent-pro', '💯', 'Percent Pro', 'Earn 2 stars on percent of a number', p => skillStars(p, 'pct-of') >= 2, 40),
+  A('speed-first', '⏱️', 'Beat the Clock', 'Finish a Speed Challenge', p => speedRuns(p).some(r => r.plays >= 1), 10),
+  A('speed-20', '💨', 'Lightning Fingers', 'Get 20 right in a 1-minute Sprint', p => speedRuns(p, 60).some(r => r.bestCorrect >= 20), 50),
+  A('speed-500', '🚀', 'Point Rocket', 'Score 500 points in one Speed Challenge', p => speedRuns(p).some(r => r.best >= 500), 40),
+  A('speed-records', '🥇', 'Record Breaker', 'Beat your own speed record 5 times', p => (p.stats.speedRecords || 0) >= 5, 50),
   A('math-25', '🧮', 'Star Collector', 'Collect 25 math stars', p => mathStars(p) >= 25, 50),
   A('math-all', '🏅', 'Math Legend', 'Collect every math star', p => mathStars(p) >= SKILLS.length * 3, 300),
 
