@@ -44,7 +44,7 @@ export function buildQuestion(card, pr, { onSubmit, compact = false }) {
     card.append(h('div', { class: 'q-prompt', html: pr.kind === 'division' ? `<span class="big-num">${pr.prompt} = ?</span>` : pr.prompt }));
     if (pr.visual) card.append(h('div', { class: 'viz-wrap', html: pr.visual }));
     const mk = (label, cls = '') => {
-      const i = h('input', { class: `answer-input ${cls}`, inputmode: pr.answerType === 'decimal' ? 'decimal' : 'numeric', autocomplete: 'off', 'aria-label': label });
+      const i = h('input', { class: `answer-input ${cls}`, inputmode: pr.answerType === 'decimal' ? 'decimal' : pr.answerType === 'big' ? 'text' : 'numeric', autocomplete: 'off', 'aria-label': label });
       onEnter(i, () => submit());
       return i;
     };
@@ -63,6 +63,7 @@ export function buildQuestion(card, pr, { onSubmit, compact = false }) {
     } else {
       const i = mk('answer');
       card.append(h('div', { class: 'row center' }, i, pr.suffix ? h('span', { class: 'r-label' }, pr.suffix) : null));
+      if (pr.answerType === 'big' && !compact) card.append(h('p', { class: 'q-hint' }, 'Type it with digits, or like 6M or 6 million.'));
       getValue = () => i.value;
       inputs = [i];
     }

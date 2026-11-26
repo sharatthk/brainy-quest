@@ -2,7 +2,7 @@
 // Passing a tier's session earns its star and opens the next tier (rules in js/shared/mastery.js). Pure, unit tested.
 import {
   SKILLS, makeAdd, makeSub, makeMul, makeDivision, countCarries, countBorrows, borrowsAcrossZero, until, nd, pair,
-  mulSolution, divSolution, genCount, genFact, genBond, genSkip, genPlace, genRound, genMulFacts, genDivFacts, genFracId, genFracEquiv, genFracCompare,
+  mulSolution, divSolution, genPctBig, genBigRead, genBigAddSub, genBigMulDiv, genBigPct, genMissing, genOneStep, genTwoStep, genExpr, genRule, genCount, genFact, genBond, genSkip, genPlace, genRound, genMulFacts, genDivFacts, genFracId, genFracEquiv, genFracCompare,
   genFracAdd, genFracOf, genDecPlace, genDecAdd, genPctIntro, genPctOf, genWordAddSub, genWordMulDiv,
 } from './skills.js';
 import { randInt, pick } from '../shared/util.js';
@@ -222,6 +222,21 @@ export const TIERS = {
   'dec-place': [T('Tenths and money', rng => genDecPlace(rng, [0, 3])), T('Hundredths and money', rng => genDecPlace(rng, [1, 3])), T('Compare decimals', rng => genDecPlace(rng, [2, 1]))],
   'dec-add': [T('Add tenths', rng => genDecAdd(rng, 1)), T('Add and subtract', rng => genDecAdd(rng, 2)), T('Line up different places', rng => genDecAdd(rng, 3))],
   'pct-intro': [T('Out of 100', rng => genPctIntro(rng, [0, 2])), T('Percents as fractions', rng => genPctIntro(rng, [0, 1])), T('Fractions as percents', rng => genPctIntro(rng, [1, 3]))],
+  'pct-big': [T('10% and 50%: 10% of 500', rng => genPctBig(rng, 1)), T('20%, 25%, 5%: 20% of 500', rng => genPctBig(rng, 2)), T('Any 5%: 35% of 6,000', rng => genPctBig(rng, 3))],
+
+  // ---- Big numbers ----
+  'big-read': [T('Millions', rng => genBigRead(rng, 1)), T('Half millions and thousands', rng => genBigRead(rng, 2)), T('Billions', rng => genBigRead(rng, 3))],
+  'big-addsub': [T('3 million + 2 million', rng => genBigAddSub(rng, 1)), T('2,400,000 + 1,300,000', rng => genBigAddSub(rng, 2)), T('5,000,000 − 250,000', rng => genBigAddSub(rng, 3))],
+  'big-muldiv': [T('3 million × 2', rng => genBigMulDiv(rng, 1)), T('40 × 200,000', rng => genBigMulDiv(rng, 2)), T('3M × 2M: count the zeros', rng => genBigMulDiv(rng, 3))],
+  'big-pct': [T('10% and 50% of millions', rng => genBigPct(rng, 1)), T('25%, 20%, 5%', rng => genBigPct(rng, 2)), T('15%, 35%, 75%', rng => genBigPct(rng, 3))],
+
+  // ---- Algebra ----
+  'alg-missing': [T('? + 7 = 15', rng => genMissing(rng, 1)), T('6 × ? = 42', rng => genMissing(rng, 2)), T('Bigger numbers', rng => genMissing(rng, 3))],
+  'alg-one': [T('x + 5 = 12', rng => genOneStep(rng, 1)), T('3x = 21, x ÷ 4 = 6', rng => genOneStep(rng, 2)), T('Bigger numbers', rng => genOneStep(rng, 3))],
+  'alg-two': [T('2x + 3 = 11', rng => genTwoStep(rng, 1)), T('5x − 4 = 21, x ÷ 3 + 2 = 7', rng => genTwoStep(rng, 2)), T('3(x + 2) = 24', rng => genTwoStep(rng, 3))],
+  'alg-expr': [T('x + 9, 2x', rng => genExpr(rng, 1)), T('4x + 5', rng => genExpr(rng, 2)), T('2a + 3b, x × x', rng => genExpr(rng, 3))],
+  'alg-rule': [T('Add a number', rng => genRule(rng, 1)), T('Multiply', rng => genRule(rng, 2)), T('Multiply, then add', rng => genRule(rng, 3))],
+
   'pct-of': [T('50% and 10%', rng => genPctOf(rng, [50, 10])), T('25% and 20%', rng => genPctOf(rng, [25, 20, 50, 10])), T('75% and 5%', rng => genPctOf(rng, [75, 5, 20, 25]))],
 };
 

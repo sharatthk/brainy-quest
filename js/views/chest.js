@@ -1,7 +1,8 @@
 // Mystery chest on the results screen: one per finished session with enough answers.
-import { h } from '../ui.js';
+import { h, toast } from '../ui.js';
 import { profile, save } from '../store.js';
-import { award } from '../shared/rewards.js';
+import { award, questUpdate } from '../shared/rewards.js';
+import { questText } from '../shared/quests.js';
 import { rollChest, CHEST_MIN_ANSWERS } from '../shared/chest.js';
 import { sfx } from '../shared/sound.js';
 import { confetti } from '../shared/confetti.js';
@@ -36,6 +37,10 @@ function open(btn, box, session) {
   save();
   if (reward.type === 'coins') award({ coins: reward.coins });
   if (reward.type === 'xp') award({ xp: reward.xp });
+  const { done } = questUpdate({ type: 'chest' });
+  done.forEach(q => setTimeout(() => toast(`Quest done: ${questText(q)}! +${q.coins} 🪙`, '🗺️', 3000), 1200));
+  p.quests.fresh = p.quests.fresh.filter(id => !done.some(q => q.id === id)); // shown by the toast already
+  save();
 
   btn.disabled = true;
   btn.classList.add('opening');

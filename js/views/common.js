@@ -6,6 +6,7 @@ import { confetti } from '../shared/confetti.js';
 import { sfx } from '../shared/sound.js';
 import { sessionPal, celebrateGrowth } from './buddy.js';
 import { chestCard } from './chest.js';
+import { afterSessionCard } from './progressCards.js';
 
 export function topbar({ title, back }) {
   const p = profile();
@@ -93,6 +94,7 @@ export function resultsView(stage, { correct, total, coins, xp, perfect, unlocke
       h('div', { class: 'reward' }, h('b', {}, `+${coins}`), h('span', {}, '🪙 coins')),
       h('div', { class: 'reward' }, h('b', {}, `+${xp}`), h('span', {}, '⚡ XP'))),
     ...extra,
+    afterSessionCard(),
     chestCard(total),
     unlocked.length ? h('div', { class: 'unlocked' }, h('h3', {}, 'New achievements!'),
       unlocked.map(a => h('div', { class: 'ach-mini' }, h('span', {}, a.emoji), h('b', {}, a.title), h('small', { class: 'muted' }, ` +${a.coins} 🪙`)))) : null,

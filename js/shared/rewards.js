@@ -6,6 +6,8 @@ import { sfx } from './sound.js';
 import { confetti } from './confetti.js';
 import { checkAchievements } from './achievements.js';
 import { ensureBuddy } from './buddy.js';
+import { questEvent, ALL_DONE_BONUS } from './quests.js';
+import { ensureStickers, giveStickers } from './stickers.js';
 
 export const xpForLevel = n => 25 * n * (n - 1);
 export function levelOf(xp) {
@@ -55,6 +57,22 @@ export function recordAnswer(ok, combo) {
   if (ok) p.stats.correct++;
   p.stats.bestCombo = Math.max(p.stats.bestCombo, combo);
   save();
+  if (ok) questUpdate({ type: 'combo', combo });
+}
+
+// Feed an event to today's quests and pay for any that got done. Finishing all three adds
+// a bonus and a sticker (kept in stickers.pending until a results screen shows it).
+export function questUpdate(event) {
+  const p = profile();
+  const { done, allDone } = questEvent(p, dayKey(), event);
+  if (allDone) {
+    const s = ensureStickers(p);
+    s.pending = [...(s.pending || []), ...giveStickers(p, 1, Math.random)];
+  }
+  const coins = done.reduce((sum, q) => sum + q.coins, 0) + (allDone ? ALL_DONE_BONUS : 0);
+  save();
+  if (coins) award({ coins });
+  return { done, allDone };
 }
 
 function touchStreak(p) {
@@ -84,6 +102,7 @@ export function finishSession({ subject, correct, total }) {
   const bonusCoins = perfect ? 10 : 3;
   award({ coins: bonusCoins, xp: bonusXp });
   const unlocked = runAchievements();
+  questUpdate({ type: 'session', subject, correct });
   return { bonusXp, bonusCoins, perfect, unlocked };
 }
 

@@ -8,7 +8,7 @@ Needs Python 3 with `pip install playwright && playwright install chromium` (on 
 
 ```sh
 cd tests/e2e
-/usr/bin/python3 bq_regression.py --parallel                 # http://localhost:8777/, phone + desktop at once (~6 min)
+/usr/bin/python3 bq_regression.py --parallel                 # http://localhost:8777/, phone + desktop at once (~11 min)
 /usr/bin/python3 bq_regression.py --base http://host:port/   # another server
 /usr/bin/python3 bq_regression.py --dir /path/to/brainy-quest --parallel   # serve a folder on http://bq.test/ via routing
 /usr/bin/python3 bq_regression.py --viewport phone --only english,spelling
@@ -46,3 +46,5 @@ Exit code 1 if any test fails. Old code for comparison: `git -C <repo> archive <
 | shop_trophies_parent | buy buddy + theme, not-enough-coins toast, persistence, Space theme, trophies, grown-ups gate, settings, backup download |
 | persistence_routes | no-player redirect, coins / attempts survive reload, unknown and invalid routes fall back |
 | buddy_gear_chest | buddy on home (stage, bar, name, mood), rename, session buddy bubbles, grow to Baby modal, gear shop (buy / wear / No gear), Space theme bubbles + chest |
+| new_math | Big Numbers, Algebra and percents of big numbers: every skill at ★/★★/★★★, a miss per skill waits for Got it, `5M`-style answers |
+| quests_stickers | 3 daily quests on home, finishing all of them in one session, quest and sticker rows on results, sticker book (72 slots), Stickers card |

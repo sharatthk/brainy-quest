@@ -373,8 +373,12 @@ def check_chest(f, expect=True):
     txt = rev.inner_text()
     after = cur_profile(f)
     m_c, m_x = re.search(r'\+(\d+) coins', txt), re.search(r'\+(\d+) bonus XP', txt)
+    # Opening a chest can also finish today's "Open a mystery chest" quest, which pays its own coins.
+    chest_q = next((q for q in (before.get('quests') or {}).get('list', []) if q['id'] == 'chest' and not q['done']), None)
+    others_done = sum(q['done'] for q in (before.get('quests') or {}).get('list', []) if q['id'] != 'chest')
+    quest_coins = (15 + (50 if others_done == 2 else 0)) if chest_q else 0  # last quest of the day also pays the all-done bonus
     if m_c:
-        f.check(after['coins'] - before['coins'] == int(m_c[1]), f'chest says +{m_c[1]} coins but coins went {before["coins"]} -> {after["coins"]}')
+        f.check(after['coins'] - before['coins'] == int(m_c[1]) + quest_coins, f'chest says +{m_c[1]} coins (+{quest_coins} quest) but coins went {before["coins"]} -> {after["coins"]}')
     elif m_x:
         f.check(after['xp'] - before['xp'] == int(m_x[1]), f'chest says +{m_x[1]} XP but XP went {before["xp"]} -> {after["xp"]}')
     else:
@@ -562,7 +566,8 @@ def t_speed(f):
     new_player(f, 'Sam')
     f.goto('/math/speed')
     chips = f.page.locator('.topic-chip')
-    f.check(chips.count() == 9, f'{chips.count()} topic chips (expected 9)')
+    units = f.page.evaluate("import(new URL('js/math/skills.js', location.href.split('#')[0])).then(m => m.UNITS.length)")
+    f.check(chips.count() == units + 1, f'{chips.count()} topic chips (expected {units} units + Everything)')
     f.check(f.page.locator('.topic-chip[disabled]').count() == 0, 'a topic is locked for a new player')
     f.check('No scores yet' in f.text(), 'leaderboard should be empty')
     f.shot('picker')
@@ -1180,6 +1185,78 @@ def t_buddy_gear_chest(f):
     bubble_shot(f, 'space-spell-wrong')
 
 
+NEW_MATH = ['pct-big', 'big-read', 'big-addsub', 'big-muldiv', 'big-pct', 'alg-missing', 'alg-one', 'alg-two', 'alg-expr', 'alg-rule']
+
+
+def t_new_math(f):
+    """Big Numbers, Algebra and percents of big numbers: every tier answered, a miss per skill, and 6M-style answers."""
+    new_player(f, 'Rae')
+    f.goto('/math')
+    units = f.page.locator('.unit-title').all_inner_texts()
+    f.check(any('Big Numbers' in u for u in units) and any('Algebra' in u for u in units), f'map lacks Big Numbers / Algebra: {units}')
+    for sid in NEW_MATH:
+        for tier in (1, 2, 3):
+            f.goto(f'/math/play/practice/{sid}/{tier}', wait='.stage .q-card')
+            card = f.page.locator('.stage .q-card').last
+            f.shot(f'{sid}-{tier}')
+            f.mark()
+            wrong = tier == 3
+            o = math_answer(f, right=not wrong, skill=sid, tier=tier, submit='enter')
+            if wrong:
+                card.locator('.fb.bad').wait_for(timeout=3000)
+                f.check(f'The answer is {o["answerText"]}' in card.locator('.fb.bad').inner_text(), f'{sid}★{tier}: wrong feedback lacks the answer')
+                f.page.wait_for_timeout(600)
+                f.check(card.locator('.fb.bad').count() == 1, f'{sid}★{tier}: wrong answer did not wait for Got it')
+                card.get_by_role('button', name='Got it ›').click()
+            else:
+                card.locator('.fb.good').wait_for(timeout=3000)
+            f.wait_next()
+    # Big answers can be typed as 5M
+    f.goto('/math/play/practice/big-addsub/1', wait='.stage .q-card')
+    o = math_oracle(f, skill='big-addsub', tier=1)
+    card = f.page.locator('.stage .q-card').last
+    f.check('6M' in card.inner_text(), 'big-number hint (6M or 6 million) missing')
+    card.get_by_label('answer', exact=True).fill(f"{int(o['answer'] // 1_000_000)}M")
+    card.get_by_label('answer', exact=True).press('Enter')
+    card.locator('.fb.good').wait_for(timeout=3000)
+
+
+def t_quests_stickers(f):
+    """Daily quests on home, finishing all three in a session, stickers on the results card and in the book."""
+    new_player(f, 'Ivy')
+    f.check(f.page.locator('.quests .quest').count() == 3, 'home does not show 3 daily quests')
+    f.shot('home-quests')
+    today = f.page.evaluate("(() => { const x = new Date(); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; })()")
+    set_profile_fields(f, quests={'day': today, 'starsAt': 0, 'bonus': False, 'fresh': [], 'list': [
+        {'id': 'right', 'goal': 5, 'progress': 0, 'done': False},
+        {'id': 'combo', 'goal': 3, 'progress': 0, 'done': False},
+        {'id': 'stars', 'goal': 1, 'progress': 0, 'done': False}]})
+    f.check('0/5' in f.page.locator('.quests').inner_text(), 'seeded quests not shown on home')
+    coins0 = cur_profile(f)['coins']
+    f.goto('/math/play/practice/basic-count/1', wait='.stage .q-card')
+    play_math_session(f, skill='basic-count', tier=1)
+    t = results_text(f)
+    f.shot('results-quests-stickers')
+    f.check(t.count('Quest done:') == 3, f'results should list 3 finished quests: {t!r}')
+    f.check('All quests done today' in t, 'all-quests bonus not shown')
+    f.check('new sticker' in t.lower() or 'new stickers' in t.lower(), 'no new sticker on the results card')
+    p = cur_profile(f)
+    f.check(len(p['stickers']['owned']) == 2, f"expected 2 stickers (1 star + quest bonus), got {p['stickers']['owned']}")
+    f.check(p['coins'] - coins0 >= 20 + 20 + 30 + 50, f"quest coins not paid: {coins0} -> {p['coins']}")
+    f.goto('/')
+    if f.page.locator('.modal-back').count():
+        f.page.keyboard.press('Escape')
+    f.check('All done' in f.page.locator('.quests').inner_text(), 'home quests do not show all done')
+    f.goto('/stickers')
+    f.check(f.page.locator('.sticker').count() == 72, 'sticker book should have 72 slots')
+    f.check(f.page.locator('.sticker:not(.missing)').count() == 2, 'sticker book does not show the 2 owned stickers')
+    f.check('2 of 72' in f.text(), 'sticker count header wrong')
+    f.shot('sticker-book')
+    f.goto('/')
+    f.page.locator('.mini-card', has_text='Stickers').click()
+    f.page.wait_for_selector('.sticker-page')
+
+
 TESTS = [
     ('profiles', t_profiles),
     ('math_map', t_math_map),
@@ -1192,6 +1269,8 @@ TESTS = [
     ('shop_trophies_parent', t_shop_trophies_parent),
     ('persistence_routes', t_persistence_routes),
     ('buddy_gear_chest', t_buddy_gear_chest),
+    ('new_math', t_new_math),
+    ('quests_stickers', t_quests_stickers),
 ]
 
 

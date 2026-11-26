@@ -13,6 +13,7 @@ import { go } from '../router.js';
 import { multiplier, pointsFor, coinsFor } from './scoring.js';
 import { genAt } from './tiers.js';
 import { chestCard } from '../views/chest.js';
+import { afterSessionCard } from '../views/progressCards.js';
 import { celebrateGrowth } from '../views/buddy.js';
 
 export const TIMERS = [
@@ -265,6 +266,7 @@ export function viewSpeedPlay({ topic, secs, tier = '2' }) {
         h('div', { class: 'reward' }, h('b', {}, `+${xp + res.bonusXp}`), h('span', {}, '⚡ XP'))),
       res.unlocked.length ? h('div', { class: 'unlocked' }, h('h3', {}, 'New achievements!'),
         res.unlocked.map(a => h('div', { class: 'ach-mini' }, h('span', {}, a.emoji), h('b', {}, a.title), h('small', { class: 'muted' }, ` +${a.coins} 🪙`)))) : null,
+      afterSessionCard(),
       chestCard(answered),
       leaderboard(topic, secs, tier, p.id),
       h('div', { class: 'row center' },

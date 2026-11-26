@@ -135,6 +135,7 @@ section + section, .card + .card { margin-top: 1rem; }
 .hub-text b { font-size: 1.45rem; }
 .hub-text small { opacity: 0.92; font-size: 0.95rem; }
 .hub-stat { align-self: flex-start; background: rgba(255, 255, 255, 0.25); padding: 0.2rem 0.7rem; border-radius: 999px; font-weight: 700; font-size: 0.9rem; }
+.hub.small-hub { grid-template-columns: repeat(4, 1fr); }
 .small-hub .mini-card { display: flex; align-items: center; gap: 0.6rem; justify-content: center; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 0.9rem; font-size: 1.05rem; }
 .small-hub .mini-card span { font-size: 1.6rem; }
 
@@ -222,6 +223,12 @@ section + section, .card + .card { margin-top: 1rem; }
 .q-hint { color: var(--muted); font-size: 0.9rem; }
 .big-num { font-size: 2rem; font-weight: 800; letter-spacing: 0.5px; }
 .hl { color: var(--brand); text-decoration: underline; text-decoration-thickness: 3px; }
+.q-hint.block { display: block; margin-top: 0.3rem; }
+.big-num.long { font-size: clamp(1.25rem, 5.6vw, 2rem); white-space: nowrap; }
+.var { font-family: Georgia, 'Times New Roman', serif; font-weight: 700; color: var(--brand); padding: 0 0.05em; }
+.io-table { margin: 0.7rem auto 0; border-collapse: collapse; font-size: 1.3rem; font-weight: 800; }
+.io-table th, .io-table td { border: 2px solid var(--line); padding: 0.3rem 1.2rem; text-align: center; }
+.io-table th { background: var(--bg2); font-size: 0.95rem; }
 .seq { display: block; margin-top: 0.5rem; font-size: 1.7rem; font-weight: 800; }
 .seq > span { white-space: nowrap; }
 .seq .qbox { margin: 0 0.05em 0 0; }
@@ -565,7 +572,7 @@ body:has(.speed-hud) #toasts { top: calc(9.5rem + env(safe-area-inset-top)); } /
   .timer-row { gap: 0.5rem; }
   .speed-hud { gap: 0.5rem; }
   .sp-box { min-width: 3.4rem; }
-  .small-hub { grid-template-columns: repeat(3, 1fr); }
+  .small-hub { grid-template-columns: repeat(4, 1fr); }
   .topbar-title { font-size: 1.05rem; }
   .combo { min-width: 0; }
 }
@@ -575,4 +582,39 @@ body:has(.speed-hud) #toasts { top: calc(9.5rem + env(safe-area-inset-top)); } /
   .pill { padding: 0.15rem 0.45rem; font-size: 0.85rem; }
   .avatar-sm { font-size: 1.3rem; width: 2rem; height: 2rem; }
   .small-hub .mini-card { flex-direction: column; gap: 0.1rem; padding: 0.7rem 0.3rem; }
+  .small-hub .mini-card b { font-size: 0.85rem; white-space: nowrap; }
 }
+
+/* ---- Daily quests ---- */
+.quests { display: flex; flex-direction: column; gap: 0.55rem; }
+.quests-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+.quests-head h3 { margin: 0; }
+.quest { display: grid; grid-template-columns: 2rem 1fr auto; align-items: center; gap: 0.6rem; padding: 0.5rem 0.7rem; border-radius: 14px; background: var(--bg2); }
+.quest.done { opacity: 0.75; }
+.quest.done .quest-body b { text-decoration: line-through; text-decoration-thickness: 2px; }
+.quest-emoji { font-size: 1.4rem; text-align: center; }
+.quest-body { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.quest-reward { font-size: 0.8rem; font-weight: 800; color: var(--muted); white-space: nowrap; }
+.qbar { height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--line) 70%, transparent); overflow: hidden; }
+.qbar-fill { height: 100%; border-radius: 99px; background: var(--brand); }
+.quests-bonus { margin: 0; text-align: center; }
+
+/* ---- Results: quests done and new stickers ---- */
+.after-card { display: flex; flex-direction: column; gap: 0.5rem; width: 100%; }
+.after-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.6rem; padding: 0.6rem 0.9rem; border-radius: 16px; text-align: left; color: var(--ink); text-decoration: none; animation: chest-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1); }
+.after-row small { font-weight: 800; color: var(--muted); white-space: nowrap; }
+.quest-done { background: color-mix(in srgb, var(--brand) 16%, var(--card)); }
+.sticker-new { background: color-mix(in srgb, #c77dff 20%, var(--card)); box-shadow: inset 0 0 0 2px color-mix(in srgb, #c77dff 50%, transparent); }
+.page-done { background: color-mix(in srgb, #ffd34d 40%, var(--card)); }
+.sticker-peel { font-size: 1.9rem; animation: sticker-peel 0.7s ease both 0.2s; }
+@keyframes sticker-peel { from { transform: rotate(-25deg) scale(0.3); opacity: 0; } 70% { transform: rotate(8deg) scale(1.15); } to { transform: none; opacity: 1; } }
+
+/* ---- Sticker book ---- */
+.sticker-page { display: flex; flex-direction: column; gap: 0.7rem; }
+.sticker-page.full { box-shadow: var(--shadow), inset 0 0 0 3px #ffc93c; }
+.sticker-head { display: flex; justify-content: space-between; align-items: baseline; }
+.sticker-head h3 { margin: 0; }
+.sticker-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.5rem; }
+.sticker { display: grid; place-items: center; aspect-ratio: 1; font-size: 2rem; border-radius: 16px; background: var(--bg2); box-shadow: 0 2px 0 var(--line); }
+.sticker.missing { font-size: 1.2rem; font-weight: 800; color: var(--muted); background: transparent; border: 2px dashed var(--line); box-shadow: none; }
+@media (max-width: 520px) { .sticker-grid { grid-template-columns: repeat(4, 1fr); } }

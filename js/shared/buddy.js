@@ -35,11 +35,16 @@ export function ensureBuddy(p) {
 
 const sum = xs => xs.reduce((s, x) => s + (Number(x) || 0), 0);
 
-export function buddyFood(p) {
+// Every star earned in any game (math skills, English units, spelling lists).
+export function totalStars(p) {
   const math = sum(Object.values(p.math?.skills || {}).map(r => r?.stars));
   const eng = sum(Object.values(p.english?.units || {}).map(r => r?.stars));
   const spell = sum(Object.values(p.spelling?.stars || {}));
-  return math + eng + spell + (p.buddy?.meals || 0);
+  return math + eng + spell;
+}
+
+export function buddyFood(p) {
+  return totalStars(p) + (p.buddy?.meals || 0);
 }
 
 // Index into STAGES for a food count.

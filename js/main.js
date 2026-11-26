@@ -1,3 +1,4 @@
+import { viewStickers } from './views/progressCards.js';
 import { route, render } from './router.js';
 import { profile, onChange } from './store.js';
 import { currentStreak } from './shared/rewards.js';
@@ -42,6 +43,7 @@ route('/spelling/words/:list', needProfile(viewWords));
 route('/spelling/import', needProfile(viewImport));
 route('/shop', needProfile(viewShop));
 route('/trophies', needProfile(viewTrophies));
+route('/stickers', needProfile(viewStickers));
 route('/parent', needProfile(viewParent));
 
 let lastCoins = null;

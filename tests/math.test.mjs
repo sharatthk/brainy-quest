@@ -193,3 +193,29 @@ test('every skill is playable; reached skills follow the suggested path', async 
   p.math.skills['div-3x2'] = { attempts: 1, stars: 0 };
   assert.ok(isReached(skillById('div-3x2'), p), 'a skill the player jumped to counts as reached');
 });
+
+test('big numbers, big percents and algebra tiers', async () => {
+  const { parseBigNumber, bigWords } = await import('../js/math/skills.js');
+  for (const [s, v] of [['6000000', 6e6], ['6,000,000', 6e6], ['6M', 6e6], ['6 million', 6e6], ['2.5 million', 2.5e6], ['300k', 3e5], ['56 billion', 56e9], ['6T', 6e12], ['abc', null], ['6 apples', null]]) assert.equal(parseBigNumber(s), v, s);
+  assert.equal(bigWords(2.5e6), '2.5 million');
+  assert.equal(bigWords(4750000), '4.75 million');
+  assert.equal(bigWords(300000), '300,000');
+  const rng = seeded(21);
+  const sample = (id, t, n = 80) => Array.from({ length: n }, () => genAt(skillById(id), t, rng));
+  const nums = p => p.prompt.replace(/<[^>]+>/g, ' ').replace(/,/g, '').match(/\d+(\.\d+)?/g).map(Number);
+  for (const p of sample('pct-big', 2)) { const [pc, N] = nums(p); assert.ok([20, 25, 5].includes(pc) && N >= 200 && p.answer === (pc * N) / 100); }
+  assert.ok(sample('pct-big', 3).every(p => nums(p)[1] >= 1000 && Number.isInteger(p.answer)));
+  assert.ok(sample('big-addsub', 1).every(p => p.answer % 1e6 === 0 && checkAnswer(p, `${p.answer / 1e6}M`)), 'accepts 5M');
+  const zeros = sample('big-muldiv', 3);
+  assert.ok(zeros.every(p => p.kind === 'choice' && /trillion|billion/.test(p.answer)));
+  assert.ok(zeros.some(p => /M × \d+M/.test(p.prompt.replace(/<[^>]+>/g, '')) && p.answer.endsWith('trillion')), '3M × 2M is trillions');
+  assert.ok(sample('big-read', 3).every(p => p.answer >= 1000));
+  assert.ok(sample('big-pct', 3).every(p => p.answer >= 100000 && Number.isInteger(p.answer)));
+  // every algebra answer really solves its equation
+  for (const p of sample('alg-one', 3).concat(sample('alg-two', 3), sample('alg-two', 2))) {
+    const eq = p.prompt.replace(/<[^>]+>/g, '').replace('Solve: ', '').replace(/(\d)x/g, '$1*x').replace(/(\d)\(/g, '$1*(').replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+    const [lhs, rhs] = eq.split('=');
+    assert.equal(Function('x', `return ${lhs}`)(p.answer), Number(rhs), eq);
+  }
+  assert.ok(sample('alg-rule', 3).every(p => p.prompt.includes('io-table') && Number.isInteger(p.answer)));
+});

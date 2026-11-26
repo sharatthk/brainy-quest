@@ -5,12 +5,12 @@ description: Run the Brainy Quest end-to-end browser regression suite (every gam
 
 # Brainy Quest regression suite
 
-`tests/e2e/` holds a Python Playwright suite (11 flows x 2 viewports). `tests/e2e/README.md` lists what each flow covers and how the in-page oracle answers questions.
+`tests/e2e/` holds a Python Playwright suite (13 flows x 2 viewports). `tests/e2e/README.md` lists what each flow covers and how the in-page oracle answers questions.
 
 ## Run
 
 1. Serve the app from the repo root if nothing is on port 8777: `python3 -m http.server 8777` (in the background).
-2. Run the whole suite (about 6 minutes):
+2. Run the whole suite (about 11 minutes, so run it in the background):
    ```sh
    cd tests/e2e && /usr/bin/python3 bq_regression.py --parallel
    ```
