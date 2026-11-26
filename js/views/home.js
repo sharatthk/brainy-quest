@@ -6,8 +6,9 @@ import { levelProgress, currentStreak, dailyXp } from '../shared/rewards.js';
 import { SKILLS } from '../math/skills.js';
 import { ENGLISH_UNITS } from '../english/content.js';
 import { MASTERED_BOX } from '../shared/mastery.js';
-import { go } from '../router.js';
+import { go, render as rerender } from '../router.js';
 import { syncCard } from './syncCard.js';
+import { heroBuddy, buddyStrip, celebrateGrowth } from './buddy.js';
 
 export const FREE_AVATARS = ['🦊', '🐼', '🐯', '🐸', '🐨', '🐰', '🐶', '🐱'];
 
@@ -28,13 +29,14 @@ export function viewHome() {
   const main = screen({ title: 'Brainy Quest', back: null, cls: 'home' });
   main.append(
     h('section', { class: 'hero card' },
-      h('div', { class: 'hero-avatar' }, p.avatar),
+      heroBuddy(p),
       h('div', { class: 'hero-info' },
         h('h2', {}, `Hi, ${p.name}!`),
         h('p', { class: 'muted' }, `Level ${lv.level} · ${currentStreak(p)}-day streak 🔥`),
         h('div', { class: 'xpbar', title: `${lv.into} / ${lv.need} XP` }, h('div', { class: 'xpfill', style: { width: `${(lv.into / lv.need) * 100}%` } })),
         h('p', { class: 'small muted' }, `${lv.need - lv.into} XP to level ${lv.level + 1}`)),
-      h('div', { class: 'hero-goal' }, ring(today / goal, today >= goal ? '✓' : `${today}`), h('small', {}, today >= goal ? 'Goal done!' : `Daily goal ${goal} XP`))),
+      h('div', { class: 'hero-goal' }, ring(today / goal, today >= goal ? '✓' : `${today}`), h('small', {}, today >= goal ? 'Goal done!' : `Daily goal ${goal} XP`)),
+      buddyStrip(p, () => rerender())),
     h('div', { class: 'hub' },
       hubCard('#/math', 'math', '🧮', 'Math Quest', 'Carry, borrow, multiply, divide, fractions, percents', `${mathStars}/${SKILLS.length * 3} ★`),
       hubCard('#/english', 'eng', '📚', 'Word Wizard', 'Grammar, punctuation, vocabulary, reading', `${engStars}/${ENGLISH_UNITS.length * 3} ★`),
@@ -43,6 +45,7 @@ export function viewHome() {
       miniCard('#/shop', '🛍️', 'Shop'),
       miniCard('#/trophies', '🏆', 'Trophies'),
       miniCard('#/parent', '👪', 'Grown-ups')));
+  celebrateGrowth(main, 600); // a growth the player left the results screen before seeing
 }
 
 const hubCard = (href, cls, emoji, title, desc, stat) =>

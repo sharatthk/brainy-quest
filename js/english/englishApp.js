@@ -232,6 +232,7 @@ function runQuiz({ title, back, items, unit, tier, review = false }) {
     }
     recordAnswer(ok, combo);
     f.setCombo(combo);
+    f.react(ok, combo);
   }
 
   function finish() {

@@ -4,6 +4,8 @@ import { profile } from '../store.js';
 import { currentStreak } from '../shared/rewards.js';
 import { confetti } from '../shared/confetti.js';
 import { sfx } from '../shared/sound.js';
+import { sessionPal, celebrateGrowth } from './buddy.js';
+import { chestCard } from './chest.js';
 
 export function topbar({ title, back }) {
   const p = profile();
@@ -48,9 +50,12 @@ export function sessionFrame({ title, back }) {
   const fill = h('div', { class: 'progress-fill' });
   const combo = h('div', { class: 'combo' });
   const stage = h('div', { class: 'stage' });
-  screen({ title, back, cls: 'session-screen' }, h('div', { class: 'session-top' }, h('div', { class: 'progress' }, fill), combo), stage);
+  const pal = sessionPal();
+  screen({ title, back, cls: 'session-screen' }, h('div', { class: 'session-top' }, pal.el, h('div', { class: 'progress' }, fill), combo), stage);
   return {
     stage,
+    // The buddy reacts to an answer; streak = right answers in a row.
+    react: pal.react,
     setProgress(done, total) {
       fill.style.width = `${Math.min(100, (done / Math.max(1, total)) * 100)}%`;
     },
@@ -88,10 +93,12 @@ export function resultsView(stage, { correct, total, coins, xp, perfect, unlocke
       h('div', { class: 'reward' }, h('b', {}, `+${coins}`), h('span', {}, '🪙 coins')),
       h('div', { class: 'reward' }, h('b', {}, `+${xp}`), h('span', {}, '⚡ XP'))),
     ...extra,
+    chestCard(total),
     unlocked.length ? h('div', { class: 'unlocked' }, h('h3', {}, 'New achievements!'),
       unlocked.map(a => h('div', { class: 'ach-mini' }, h('span', {}, a.emoji), h('b', {}, a.title)))) : null,
     h('div', { class: 'row center' },
       again ? h('button', { class: 'btn', onclick: again }, '🔁 Play again') : null,
       h('a', { class: 'btn alt', href: backHref }, backLabel))));
   stage.querySelector('.btn')?.focus();
+  celebrateGrowth(stage.firstElementChild);
 }

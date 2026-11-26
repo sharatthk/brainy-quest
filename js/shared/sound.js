@@ -36,5 +36,6 @@ export const sfx = {
   click: play(() => tone(520, 0, 0.05, 'sine', 0.06)),
   tick: play(() => tone(1100, 0, 0.05, 'square', 0.03)),
   levelUp: play(() => [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.11, 0.22, 'triangle'))),
+  chest: play(() => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, i * 0.07, 0.2, 'triangle', 0.1))),
   fanfare: play(() => [784, 784, 784, 1047].forEach((f, i) => tone(f, i * 0.13, i === 3 ? 0.5 : 0.12, 'triangle'))),
 };

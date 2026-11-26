@@ -1,0 +1,19 @@
+# Brainy Quest
+
+Gamified math, English and spelling PWA for kids (about 6 to 11). Vanilla JS ES modules, no build step, no runtime dependencies. README.md has the feature overview and code map.
+
+- Run: `python3 -m http.server 8777` from the repo root, open http://localhost:8777
+- Unit tests: `node --test tests/*.test.mjs`
+- Browser regression suite and how to run it: the `regression-test` skill
+- Adding skills, units, word lists: the `add-content` skill
+- Deploying to GitHub Pages: the `deploy-pages` skill
+
+## Conventions
+
+- Pure logic (generators, tiers, scoring, merge, spelling logic) lives in DOM-free modules and is unit tested with a seeded rng (`seeded` in js/shared/util.js). UI code uses the `h()` helper from js/ui.js.
+- Every stage has three star tiers; pass rules are in js/shared/mastery.js. Everything is playable at any time; `requires` only drives suggestions.
+- Profiles sync between devices as whole objects (js/sync/merge.js): new profile fields must tolerate being missing (default with `||=` or in `migrate`).
+- Kid-facing text: short, kind, encouraging. Wrong answers wait for a button; never auto-advance past a mistake.
+- Must work at phone width (390px) and desktop, in light and dark ("space") themes. Check both in the browser for any UI change.
+- No em dash characters anywhere.
+- `js/spelling/woc2024.js` is generated (tools/build-woc.py); never edit by hand.

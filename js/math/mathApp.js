@@ -226,6 +226,7 @@ export function viewPlay({ mode, skill: skillId, tier: tierParam }) {
     }
     recordAnswer(ok, combo);
     f.setCombo(combo);
+    f.react(ok, combo);
     f.setProgress(answered, planned);
   }
 

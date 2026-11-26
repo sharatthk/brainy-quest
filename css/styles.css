@@ -97,7 +97,23 @@ section + section, .card + .card { margin-top: 1rem; }
 
 /* ---------- Home ---------- */
 .hero { display: grid; grid-template-columns: auto 1fr auto; gap: 1rem; align-items: center; }
-.hero-avatar { font-size: 3.4rem; width: 5rem; height: 5rem; display: grid; place-items: center; background: var(--bg2); border-radius: 50%; }
+.hero-buddy { position: relative; width: 5.4rem; height: 5.4rem; display: grid; place-items: center; background: var(--bg2); border-radius: 50%; }
+.hero-buddy.mood-happy .buddy-body { animation: hover 1.8s ease-in-out infinite alternate; }
+.hero-buddy.mood-hungry .buddy-body { animation: wobble 2.6s ease-in-out infinite; }
+.stage-badge { position: absolute; bottom: -0.45rem; left: 50%; transform: translateX(-50%); padding: 0.05rem 0.55rem; border-radius: 999px; background: var(--brand); color: #fff; font-size: 0.72rem; font-weight: 800; white-space: nowrap; box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15); }
+.stage-badge.st-legend { background: linear-gradient(90deg, #ffb400, #ff8a00); }
+.buddy-strip { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 1rem; align-items: center; background: color-mix(in srgb, var(--bg2) 55%, var(--card)); border-radius: 16px; padding: 0.55rem 0.8rem; }
+.buddy-who { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.buddy-name { display: inline-flex; gap: 0.3rem; align-items: center; border: 0; background: none; font-weight: 800; font-size: 1.15rem; padding: 0.1rem 0.35rem; margin-left: -0.35rem; border-radius: 10px; }
+.buddy-name:hover { background: var(--card); }
+.buddy-name .pen { font-size: 0.8rem; opacity: 0.75; }
+.mood-chip { border-radius: 999px; padding: 0.1rem 0.6rem; font-size: 0.8rem; font-weight: 800; white-space: nowrap; }
+.mood-chip.happy { background: var(--good-bg); color: var(--good); }
+.mood-chip.hungry { background: var(--warn-bg); color: var(--ink); box-shadow: inset 0 0 0 2px #ffc93c; }
+.buddy-grow { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.buddy-bar { height: 10px; background: var(--card); border-radius: 999px; overflow: hidden; }
+.buddy-fill { height: 100%; background: linear-gradient(90deg, #8ac926, var(--good)); border-radius: 999px; transition: width 0.6s ease; }
+.buddy-tip { grid-column: 1 / -1; margin: 0; }
 .hero-info h2 { font-size: 1.6rem; margin: 0; }
 .xpbar { height: 14px; background: var(--bg2); border-radius: 999px; overflow: hidden; margin-top: 0.4rem; }
 .xpfill { height: 100%; background: linear-gradient(90deg, var(--brand2), var(--brand)); border-radius: 999px; transition: width 0.6s ease; }
@@ -400,6 +416,73 @@ td .stars { font-size: 0.95rem; }
 .field { display: flex; flex-direction: column; gap: 0.3rem; font-weight: 600; }
 .file-btn input { display: none; }
 
+/* ---------- Buddy pet ---------- */
+/* The buddy box is 1.25em of --bs; the pet inside scales with its stage (--pet). */
+.buddy { --bs: 3.4rem; --pet: 1em; font-size: var(--bs); position: relative; width: 1.25em; height: 1.25em; display: grid; place-items: center; line-height: 1; flex: none; }
+.buddy-sm { --bs: 2rem; }
+.buddy-md { --bs: 2.6rem; }
+.buddy.st-baby { --pet: 0.58em; }
+.buddy.st-kid { --pet: 0.72em; }
+.buddy.st-hero { --pet: 0.82em; }
+.buddy.st-legend { --pet: 0.9em; }
+.buddy-body { position: relative; display: inline-block; font-size: var(--pet); line-height: 1; }
+.buddy-pet { display: block; }
+.buddy.st-hero .buddy-pet { filter: drop-shadow(0 0 0.06em color-mix(in srgb, var(--brand2) 80%, transparent)); }
+.buddy.st-legend .buddy-pet { filter: drop-shadow(0 0 0.06em #ffd34d) drop-shadow(0 0 0.14em #ffb400); }
+.buddy.st-egg .buddy-body { font-size: 0.56em; position: absolute; top: 0.2em; left: 50%; margin-left: -0.5em; }
+/* A cracked eggshell drawn in CSS: the pet peeks out over its zigzag rim. */
+.buddy-egg {
+  position: absolute; bottom: 0.1em; left: 50%; width: 0.8em; height: 0.6em; margin-left: -0.4em; z-index: 1; transform-origin: 50% 90%;
+  background: radial-gradient(circle at 35% 35%, #fffdf7 0, #f4ead6 70%, #e2d3b4 100%);
+  border-radius: 50% 50% 50% 50% / 30% 30% 70% 70%;
+  clip-path: polygon(0 22%, 11% 4%, 22% 24%, 34% 2%, 46% 24%, 58% 2%, 70% 24%, 82% 4%, 92% 22%, 100% 14%, 100% 100%, 0 100%);
+  filter: drop-shadow(0 0.02em 0.02em rgba(0, 0, 0, 0.2));
+}
+.hero-buddy .buddy-egg { animation: wobble 2.6s ease-in-out infinite; }
+.buddy-gear { position: absolute; left: 50%; top: -38%; font-size: 0.52em; transform: translateX(-50%) rotate(-8deg); z-index: 2; }
+.buddy-gear.slot-eyes { top: 22%; font-size: 0.56em; transform: translateX(-50%); }
+.buddy-gear.slot-side { top: -14%; left: 82%; font-size: 0.42em; transform: translateX(-50%) rotate(18deg); }
+.buddy.st-egg .buddy-gear.slot-eyes { top: 14%; }
+.buddy-sparkle { position: absolute; top: 0; right: -0.08em; font-size: 0.34em; animation: twinkle 1.4s ease-in-out infinite alternate; z-index: 3; }
+.gear-head { display: flex; gap: 0.9rem; align-items: center; margin-bottom: 0.8rem; }
+.gear-head .buddy { background: var(--bg2); border-radius: 50%; width: 1.5em; height: 1.5em; }
+.gear-head p { margin: 0; }
+.grow-show { position: relative; }
+.grow-show .stage-badge { font-size: 0.9rem; bottom: -0.6rem; }
+.grow-show { display: grid; place-items: center; margin: 0.4rem 0 0.6rem; }
+.grow-show .buddy { --bs: 5rem; background: var(--bg2); border-radius: 50%; width: 1.4em; height: 1.4em; animation: grow 0.7s cubic-bezier(0.2, 1.6, 0.4, 1); }
+/* Session buddy: sits at the left of the progress bar; the bubble floats over the bar and never takes clicks. */
+.pal { position: relative; flex: none; pointer-events: none; }
+.pal-bubble {
+  position: absolute; left: calc(100% + 0.45rem); top: 50%; z-index: 5; transform: translateY(-50%) scale(0.6); transform-origin: left center; opacity: 0;
+  background: var(--card); color: var(--ink); border-radius: 14px; padding: 0.3rem 0.75rem; font-weight: 800; font-size: 0.9rem; white-space: nowrap;
+  box-shadow: 0 0 0 2px var(--line), var(--shadow); transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+.pal-bubble::before { content: ""; position: absolute; left: -6px; top: 50%; width: 12px; height: 12px; background: inherit; transform: translateY(-50%) rotate(45deg); box-shadow: -2px 2px 0 0 var(--line); }
+.pal.show .pal-bubble { opacity: 1; transform: translateY(-50%) scale(1); }
+.pal.cheer .pal-bubble { background: var(--good-bg); }
+.pal.fire .pal-bubble { background: var(--warn-bg); }
+.pal.show.cheer .buddy-body, .pal.show.fire .buddy-body { animation: hop 0.5s ease 2; }
+.pal.show.oops .buddy-body { animation: wobble 0.8s ease; }
+
+/* ---------- Mystery chest ---------- */
+.chest-box { width: min(26rem, 100%); margin: 0.5rem auto; display: flex; justify-content: center; }
+.chest-btn { display: flex; align-items: center; justify-content: center; gap: 0.8rem; width: 100%; padding: 0.6rem 1.1rem; border: 3px dashed var(--brand2); border-radius: 18px; background: color-mix(in srgb, var(--brand2) 18%, var(--card)); color: var(--ink); font-weight: 800; font-size: 1.05rem; }
+.chest-btn:hover:not(:disabled) { border-style: solid; }
+.chest-btn:disabled { cursor: default; }
+.chest-label { display: flex; flex-direction: column; text-align: left; line-height: 1.25; }
+.chest-label small { font-weight: 600; color: var(--muted); }
+.chest-emoji { display: inline-block; font-size: 2.8rem; line-height: 1; animation: chest-wiggle 2.4s ease-in-out infinite; }
+.chest-btn.opening .chest-label { display: flex; flex-direction: column; text-align: left; line-height: 1.25; }
+.chest-label small { font-weight: 600; color: var(--muted); }
+.chest-emoji { animation: chest-shake 0.65s ease forwards; }
+.chest-reveal { display: flex; align-items: center; gap: 0.8rem; width: 100%; padding: 0.6rem 1rem; border-radius: 18px; background: color-mix(in srgb, var(--brand2) 22%, var(--card)); animation: chest-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1); flex-wrap: wrap; justify-content: center; }
+.chest-reveal.rare { background: linear-gradient(120deg, color-mix(in srgb, #ffd34d 45%, var(--card)), color-mix(in srgb, var(--brand2) 25%, var(--card))); box-shadow: inset 0 0 0 3px #ffc93c; }
+.reveal-emoji { font-size: 2.8rem; line-height: 1; animation: grow 0.6s cubic-bezier(0.2, 1.6, 0.4, 1); }
+.reveal-text { display: flex; flex-direction: column; text-align: left; }
+.reveal-text b { font-size: 1.2rem; }
+.chest-reveal .btn { padding: 0.5rem 1rem; }
+
 /* ---------- Toasts, pops, confetti ---------- */
 #toasts { position: fixed; left: 50%; top: calc(4.25rem + env(safe-area-inset-top)); transform: translateX(-50%); display: flex; flex-direction: column; gap: 0.5rem; z-index: 100; width: min(92vw, 420px); pointer-events: none; }
 body:has(.speed-hud) #toasts { top: calc(9.5rem + env(safe-area-inset-top)); } /* keep the timer and score visible */
@@ -420,6 +503,13 @@ body:has(.speed-hud) #toasts { top: calc(9.5rem + env(safe-area-inset-top)); } /
 @keyframes pulse { to { transform: scale(1.08); } }
 @keyframes bounce { to { transform: translateY(-10px); } }
 @keyframes hover { to { transform: translateY(-6px) rotate(6deg); } }
+@keyframes hop { 50% { transform: translateY(-0.3em); } }
+@keyframes wobble { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-7deg); } 75% { transform: rotate(7deg); } }
+@keyframes twinkle { from { opacity: 0.4; transform: scale(0.8); } to { opacity: 1; transform: scale(1.15); } }
+@keyframes grow { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes chest-wiggle { 0%, 78%, 100% { transform: rotate(0); } 84% { transform: rotate(-9deg); } 90% { transform: rotate(9deg); } 95% { transform: rotate(-4deg); } }
+@keyframes chest-shake { 15% { transform: rotate(-14deg) scale(1.05); } 30% { transform: rotate(14deg) scale(1.1); } 45% { transform: rotate(-14deg) scale(1.15); } 60% { transform: rotate(14deg) scale(1.2); } 100% { transform: scale(1.6); opacity: 0; } }
+@keyframes chest-pop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
 
 /* ---------- Speed Challenge ---------- */
@@ -469,6 +559,7 @@ body:has(.speed-hud) #toasts { top: calc(9.5rem + env(safe-area-inset-top)); } /
   .hub-text { min-width: 60%; }
   .hero { grid-template-columns: auto 1fr; }
   .hero-goal { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 0.8rem; }
+  .buddy-strip { grid-template-columns: 1fr; }
   .quick-row { grid-template-columns: 1fr; }
   .timer-row { gap: 0.5rem; }
   .speed-hud { gap: 0.5rem; }

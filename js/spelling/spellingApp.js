@@ -287,6 +287,7 @@ export function viewPractice({ list: listId, tier: tierParam }) {
         }
         recordAnswer(ok, combo);
         f.setCombo(combo);
+        f.react(ok, combo);
       },
     });
     if (item.retry) card.prepend(h('div', { class: 'q-tag' }, '🔁 Second try'));
@@ -373,6 +374,7 @@ export function viewChallenge({ list: listId, tier: tierParam }) {
         }
         recordAnswer(ok, streak);
         f.setCombo(streak);
+        f.react(ok, streak);
         drawLives();
       },
     });

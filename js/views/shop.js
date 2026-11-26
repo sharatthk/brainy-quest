@@ -1,4 +1,4 @@
-// Shop (spend coins on avatars and themes) and trophy case.
+// Shop (spend coins on avatars, buddy gear and themes) and trophy case.
 import { h, toast } from '../ui.js';
 import { screen } from './common.js';
 import { profile, save } from '../store.js';
@@ -7,6 +7,8 @@ import { sfx } from '../shared/sound.js';
 import { confetti } from '../shared/confetti.js';
 import { render as rerender } from '../router.js';
 import { FREE_AVATARS } from './home.js';
+import { GEAR, gearId, ensureBuddy } from '../shared/buddy.js';
+import { buddyFace } from './buddy.js';
 
 export const AVATARS = [
   ['🐧', 30], ['🐙', 40], ['🦁', 40], ['🐝', 50], ['🦄', 50], ['🦖', 60], ['🤖', 60],
@@ -44,11 +46,31 @@ export function viewShop() {
     h('div', { class: 'shop-grid' },
       FREE_AVATARS.map(a => item(a, 'Free', p.avatar === a, true, () => { p.avatar = a; save(); rerender(); })),
       AVATARS.map(([a, price]) => item(a, p.owned.includes(`av:${a}`) ? 'Owned' : `${price} 🪙`, p.avatar === a, p.owned.includes(`av:${a}`), () => buy(`av:${a}`, price, x => (x.avatar = a))))));
+  main.append(...gearSection(p));
   main.append(h('h3', { class: 'unit-title' }, 'Themes'),
     h('div', { class: 'shop-grid' }, THEMES.map(([id, name, price, color]) => {
       const owned = price === 0 || p.owned.includes(`th:${id}`);
       return item(h('span', { class: 'swatch', style: { background: color } }), `${name} · ${owned ? 'Owned' : `${price} 🪙`}`, p.theme === id, owned, () => (owned ? (p.theme = id, save(), rerender()) : buy(`th:${id}`, price, x => (x.theme = id))));
     })));
+}
+
+function gearSection(p) {
+  const b = ensureBuddy(p);
+  const wear = g => () => {
+    b.gear = g;
+    save();
+    rerender();
+  };
+  return [
+    h('h3', { class: 'unit-title' }, 'Hats & gear'),
+    h('div', { class: 'gear-head' }, buddyFace(p, { size: 'md' }), h('p', { class: 'muted small' }, `Dress up ${b.name}! Tap an item you own to wear it. Some items hide in mystery chests.`)),
+    h('div', { class: 'shop-grid' },
+      item('🚫', 'No gear', !b.gear, true, wear(null)),
+      GEAR.map(([g, name, price]) => {
+        const owned = p.owned.includes(gearId(g));
+        return item(g, `${name} · ${owned ? 'Owned' : `${price} 🪙`}`, b.gear === g, owned, owned ? wear(g) : () => buy(gearId(g), price, x => (ensureBuddy(x).gear = g)));
+      })),
+  ];
 }
 
 const item = (icon, label, active, owned, onclick) =>

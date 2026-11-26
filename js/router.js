@@ -15,6 +15,7 @@ export function go(path) {
 export function render() {
   if (typeof cleanup === 'function') cleanup();
   cleanup = null;
+  document.querySelectorAll('.modal-back').forEach(m => m.remove()); // a popup never outlives its screen
   const path = location.hash.slice(1) || '/';
   for (const r of routes) {
     const m = path.match(r.re);

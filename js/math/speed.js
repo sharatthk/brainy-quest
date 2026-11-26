@@ -12,6 +12,8 @@ import { pick } from '../shared/util.js';
 import { go } from '../router.js';
 import { multiplier, pointsFor, coinsFor } from './scoring.js';
 import { genAt } from './tiers.js';
+import { chestCard } from '../views/chest.js';
+import { celebrateGrowth } from '../views/buddy.js';
 
 export const TIMERS = [
   { secs: 60, name: 'Sprint', emoji: '⚡' },
@@ -263,11 +265,13 @@ export function viewSpeedPlay({ topic, secs, tier = '2' }) {
         h('div', { class: 'reward' }, h('b', {}, `+${xp + res.bonusXp}`), h('span', {}, '⚡ XP'))),
       res.unlocked.length ? h('div', { class: 'unlocked' }, h('h3', {}, 'New achievements!'),
         res.unlocked.map(a => h('div', { class: 'ach-mini' }, h('span', {}, a.emoji), h('b', {}, a.title)))) : null,
+      chestCard(answered),
       leaderboard(topic, secs, tier, p.id),
       h('div', { class: 'row center' },
         h('button', { class: 'btn', onclick: () => go(`/math/speed/${topic}/${secs}/${tier}`) }, '🔁 Play again'),
         h('a', { class: 'btn alt', href: '#/math/speed' }, 'Change challenge'))));
     stage.querySelector('.btn')?.focus();
+    celebrateGrowth(stage.firstElementChild);
   }
 
   const keyHandler = e => {

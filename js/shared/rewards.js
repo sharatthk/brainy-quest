@@ -5,6 +5,7 @@ import { toast } from '../ui.js';
 import { sfx } from './sound.js';
 import { confetti } from './confetti.js';
 import { checkAchievements } from './achievements.js';
+import { ensureBuddy } from './buddy.js';
 
 export const xpForLevel = n => 25 * n * (n - 1);
 export function levelOf(xp) {
@@ -72,6 +73,9 @@ export function finishSession({ subject, correct, total }) {
   p.stats[`${subject}Sessions`] = (p.stats[`${subject}Sessions`] || 0) + 1;
   const perfect = total > 0 && correct === total;
   if (perfect) p.stats.perfectSessions++;
+  const buddy = ensureBuddy(p);
+  buddy.meals++; // every finished session feeds the buddy
+  buddy.fedDay = dayKey();
   save();
   if (p.streak.count > streakBefore && p.streak.count > 1) {
     setTimeout(() => toast(`${p.streak.count}-day streak! Keep it going!`, '🔥', 3000), 800);

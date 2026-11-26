@@ -1,5 +1,6 @@
 // Persistent state in localStorage. Profiles hold per-kid progress; word lists are shared.
 import { uid } from './shared/util.js';
+import { ensureBuddy } from './shared/buddy.js';
 
 const KEY = 'brainyquest.v1';
 const listeners = new Set();
@@ -22,6 +23,8 @@ function defaults() {
     math: { skills: {}, speed: {} },
     english: { units: {}, review: {} },
     spelling: { cards: {}, bestChallenge: 0, stars: {} },
+    buddy: {},
+    chest: { session: 0, opened: 0 },
     settings: { voiceURI: '', rate: 0.85, sound: true, dailyGoal: 60, scratch: false },
   };
 }
@@ -32,6 +35,7 @@ export function migrate(p) {
     if (p[k] === undefined) p[k] = v;
     else if (v && typeof v === 'object' && !Array.isArray(v)) p[k] = { ...v, ...p[k] };
   }
+  ensureBuddy(p);
   return p;
 }
 
