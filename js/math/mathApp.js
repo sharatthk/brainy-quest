@@ -2,7 +2,7 @@
 import { h, modal, toast } from '../ui.js';
 import { screen, stars, sessionFrame, resultsView, cheer, praise, tierList, TIER_NAMES, starText } from '../views/common.js';
 import { profile, save } from '../store.js';
-import { SKILLS, UNITS, skillById, isUnlocked, diagnose, checkAnswer, answerText } from './skills.js';
+import { SKILLS, UNITS, skillById, isReached, diagnose, checkAnswer, answerText } from './skills.js';
 import { emptyRec, record, recentAccuracy, currentTier, passed, needToPass } from '../shared/mastery.js';
 import { buildQuestion, isEmptyAnswer } from './question.js';
 import { genAt, tiersOf, tierLabel } from './tiers.js';
@@ -13,8 +13,6 @@ import { render as rerender } from '../router.js';
 import { pick } from '../shared/util.js';
 
 const rec = id => (profile().math.skills[id] ||= emptyRec());
-// Highest tier the player may play: the next one to earn, or all three when a grown-up unlocked everything.
-const topTier = (p, s) => (p.settings.unlockAll ? 3 : currentTier(rec(s.id).stars));
 
 // ---------------- Map ----------------
 
@@ -24,7 +22,7 @@ export function viewMap() {
   const main = screen({ title: 'Math Quest', back: '#/' });
   main.append(
     h('div', { class: 'quest-head' },
-      h('div', {}, h('h2', {}, 'Pick your challenge'), h('p', { class: 'muted' }, `${totalStars} of ${SKILLS.length * 3} stars collected. Pass ★★ to unlock the next skill.`))),
+      h('div', {}, h('h2', {}, 'Pick your challenge'), h('p', { class: 'muted' }, `${totalStars} of ${SKILLS.length * 3} stars collected. Start anywhere: ✨ marks the suggested next skill.`))),
     h('div', { class: 'quick-row' },
       h('a', { class: 'quick mix', href: '#/math/mix' }, h('span', { class: 'quick-emoji' }, '🎲'), h('span', {}, h('b', {}, 'Daily Mix'), h('small', {}, 'A smart mix of new and tricky skills'))),
       h('a', { class: 'quick gym', href: '#/math/gym' }, h('span', { class: 'quick-emoji' }, '🏋️'), h('span', {}, h('b', {}, 'Carry & Borrow Gym'), h('small', {}, 'Coach-guided column practice'))),
@@ -33,25 +31,26 @@ export function viewMap() {
   for (const u of UNITS) {
     const list = SKILLS.filter(s => s.unit === u.id);
     const got = list.reduce((s, k) => s + (p.math.skills[k.id]?.stars || 0), 0);
+    // Suggested next: the first skill on the path that doesn't have ★★ yet.
+    const next = list.find(s => isReached(s, p) && (p.math.skills[s.id]?.stars || 0) < 2);
     main.append(h('section', { class: 'unit' },
       h('h3', { class: 'unit-title' }, `${u.emoji} ${u.title}`, h('span', { class: 'unit-stars' }, `${got}/${list.length * 3} ★`)),
-      h('div', { class: 'skill-grid' }, list.map(s => skillNode(s, p)))));
+      h('div', { class: 'skill-grid' }, list.map(s => skillNode(s, p, s === next)))));
   }
 }
 
-function skillNode(s, p) {
-  const open = isUnlocked(s, p);
+function skillNode(s, p, suggested) {
   const r = p.math.skills[s.id];
-  return h('button', { class: `skill ${open ? '' : 'locked'} ${r?.stars === 3 ? 'gold' : ''}`, onclick: () => skillSheet(s, open) },
-    h('span', { class: 'skill-emoji' }, open ? s.emoji : '🔒'),
+  return h('button', { class: `skill ${suggested ? 'suggested' : ''} ${r?.stars === 3 ? 'gold' : ''}`, onclick: () => skillSheet(s) },
+    suggested ? h('span', { class: 'next-badge' }, '✨ Next') : null,
+    h('span', { class: 'skill-emoji' }, s.emoji),
     h('span', { class: 'skill-title' }, s.title),
     stars(r?.stars || 0));
 }
 
-function skillSheet(s, open) {
+function skillSheet(s) {
   const r = profile().math.skills[s.id];
   const acc = recentAccuracy(r);
-  const needs = s.requires.map(id => skillById(id).title).join(' and ');
   const got = r?.stars || 0;
   let close;
   const goTo = path => {
@@ -64,14 +63,10 @@ function skillSheet(s, open) {
     h('p', { class: 'muted' }, s.desc),
     stars(got),
     acc != null ? h('p', { class: 'muted small' }, `Recent accuracy: ${Math.round(acc * 100)}%`) : null,
-    open
-      ? h('div', { class: 'stack' },
-        tierList({ tiers: tiersOf(s), got, top: topTier(profile(), s), onPick: tier => goTo(`/math/play/practice/${s.id}/${tier}`) }),
-        h('p', { class: 'muted small' }, `Get ${needToPass(10)} of 10 right to earn a star and open the next one.`),
-        s.guided ? h('button', { class: 'btn alt', onclick: () => goTo(`/math/play/coach/${s.id}`) }, '🦉 Coach me step by step') : null)
-      : h('div', { class: 'stack' },
-        h('p', {}, `Unlock by earning ★★ in ${needs}.`),
-        h('button', { class: 'btn alt', onclick: () => goTo(`/math/play/unlock/${s.id}`) }, '⚔️ Unlock challenge: 5 in a row')),
+    h('div', { class: 'stack' },
+        tierList({ tiers: tiersOf(s), got, onPick: tier => goTo(`/math/play/practice/${s.id}/${tier}`) }),
+        h('p', { class: 'muted small' }, `Get ${needToPass(10)} of 10 right on the first try to earn a star.`),
+        s.guided ? h('button', { class: 'btn alt', onclick: () => goTo(`/math/play/coach/${s.id}`) }, '🦉 Coach me step by step') : null),
     h('button', { class: 'link-btn', onclick: () => close() }, 'Close'));
 }
 
@@ -80,7 +75,7 @@ function skillSheet(s, open) {
 const GYM = SKILLS.filter(s => s.gym);
 
 function mixPicker(p) {
-  const open = SKILLS.filter(s => isUnlocked(s, p));
+  const open = SKILLS.filter(s => isReached(s, p));
   const weights = open.map(s => {
     const r = p.math.skills[s.id];
     if (!r || !r.attempts) return 4; // new frontier skill
@@ -102,8 +97,7 @@ export function viewPlay({ mode, skill: skillId, tier: tierParam }) {
   const p = profile();
   const skill = skillId ? skillById(skillId) : null;
   // Practice plays one star tier (the next one to earn unless the URL picks an open one); the unlock challenge uses ★★.
-  const tier = !skill ? null : mode === 'unlock' ? 2
-    : Math.min(topTier(p, skill), Math.max(1, Number(tierParam) || currentTier(rec(skill.id).stars)));
+  const tier = !skill ? null : Math.min(3, Math.max(1, Number(tierParam) || currentTier(rec(skill.id).stars)));
   if (skillId && !skill) {
     location.hash = '/math';
     return;
@@ -111,9 +105,8 @@ export function viewPlay({ mode, skill: skillId, tier: tierParam }) {
   const cfg = {
     practice: { length: 10, title: `${skill?.title} ${starText(tier)}`, pickSkill: () => skill },
     coach: { length: 3, title: `Coach: ${skill?.title}`, pickSkill: () => skill, guided: true },
-    unlock: { length: 5, title: `Unlock: ${skill?.title}`, pickSkill: () => skill },
     mix: { length: 12, title: 'Daily Mix', pickSkill: mixPicker(p) },
-    gym: { length: 8, title: 'Carry & Borrow Gym', pickSkill: () => pick(GYM.filter(s => isUnlocked(s, p)).length >= 2 ? GYM.filter(s => isUnlocked(s, p)) : [skillById('add-2d-c'), skillById('sub-2d-b')]) },
+    gym: { length: 8, title: 'Carry & Borrow Gym', pickSkill: () => pick(GYM.filter(s => isReached(s, p)).length >= 2 ? GYM.filter(s => isReached(s, p)) : [skillById('add-2d-c'), skillById('sub-2d-b')]) },
   }[mode];
   if (!cfg) {
     location.hash = '/math';
@@ -225,7 +218,7 @@ export function viewPlay({ mode, skill: skillId, tier: tierParam }) {
     } else {
       combo = 0;
       sfx.wrong();
-      if (mode !== 'unlock' && requeues < 3) {
+      if (requeues < 3) {
         requeues++;
         planned++;
         queue.push(makeItem(item.skill, !!diag && item.skill.guided, item.tier, true));
@@ -234,21 +227,10 @@ export function viewPlay({ mode, skill: skillId, tier: tierParam }) {
     recordAnswer(ok, combo);
     f.setCombo(combo);
     f.setProgress(answered, planned);
-    if (mode === 'unlock' && !ok) planned = answered; // challenge ends on the first miss
   }
 
   function finish() {
     const extra = [];
-    if (mode === 'unlock') {
-      if (correct === cfg.length) {
-        rec(skill.id).unlocked = true;
-        save();
-        toast(`${skill.title} unlocked!`, '🔓');
-        extra.push(h('p', { class: 'big-msg' }, '🔓 Skill unlocked! You are ready for it.'));
-      } else {
-        extra.push(h('p', { class: 'big-msg' }, 'Almost! Keep practicing the earlier skills and try again.'));
-      }
-    }
     const res = finishSession({ subject: 'math', correct, total: answered });
     if (skill && mode === 'practice') extra.push(tierResult());
     resultsView(f.stage, {
@@ -267,7 +249,7 @@ export function viewPlay({ mode, skill: skillId, tier: tierParam }) {
     save();
     const fresh = r.stars > starsBefore;
     const msg = !fresh ? `You passed ${starText(tier)} again!`
-      : tier === 2 && starsBefore < 2 ? `${starText(tier)} earned! Next skill unlocked!`
+      : tier === 2 && starsBefore < 2 ? `${starText(tier)} earned! You're ready for the next skill.`
         : `${starText(tier)} earned!`;
     if (fresh) sfx.levelUp();
     return h('div', { class: 'star-up' }, h('p', {}, msg), stars(r.stars),

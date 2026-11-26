@@ -3,7 +3,7 @@
 import { h, toast } from '../ui.js';
 import { screen, TIER_NAMES, starText } from '../views/common.js';
 import { profile, save, getState } from '../store.js';
-import { SKILLS, UNITS, isUnlocked, checkAnswer, answerText } from './skills.js';
+import { SKILLS, UNITS, isReached, checkAnswer, answerText } from './skills.js';
 import { buildQuestion, isEmptyAnswer } from './question.js';
 import { award, recordAnswer, finishSession } from '../shared/rewards.js';
 import { sfx } from '../shared/sound.js';
@@ -27,7 +27,11 @@ const DIFFICULTY = [
   { tier: 3, blurb: 'Hard problems, big points' },
 ];
 
-const openSkills = (p, topic) => SKILLS.filter(s => isUnlocked(s, p) && (topic === 'mix' || s.unit === topic));
+// Reached skills of the topic; a topic not reached yet starts with its first skill.
+function openSkills(p, topic) {
+  const reached = SKILLS.filter(s => isReached(s, p) && (topic === 'mix' || s.unit === topic));
+  return reached.length || topic === 'mix' ? reached : SKILLS.filter(s => s.unit === topic).slice(0, 1);
+}
 const topics = () => [MIX, ...UNITS];
 // ★★ keeps the original key, so records set before difficulty tiers existed count as ★★ records.
 const recKey = (topic, secs, tier) => (tier === 2 ? `${topic}-${secs}` : `${topic}-${secs}-t${tier}`);
@@ -100,7 +104,7 @@ export function viewSpeedPlay({ topic, secs, tier = '2' }) {
   }
   choice = { topic, secs, tier };
 
-  let alive = true, ended = false, timerId = 0, onKey = null;
+  let alive = true, ended = false, timerId = 0, onKey = null, pausedLeft = null; // pausedLeft: ms left while a miss is on screen
   let score = 0, correct = 0, answered = 0, streak = 0, bestStreak = 0, endAt = 0;
 
   const timeEl = h('b', { class: 'sp-time' }, `${secs}`);
@@ -146,6 +150,7 @@ export function viewSpeedPlay({ topic, secs, tier = '2' }) {
     endAt = performance.now() + secs * 1000;
     let lastTick = null;
     timerId = setInterval(() => {
+      if (pausedLeft != null) return;
       const left = Math.max(0, endAt - performance.now());
       const s = Math.ceil(left / 1000);
       timeEl.textContent = s >= 60 ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : `${s}`;
@@ -204,8 +209,22 @@ export function viewSpeedPlay({ topic, secs, tier = '2' }) {
       } else {
         streak = 0;
         sfx.wrong();
-        fb.replaceChildren(h('div', { class: 'fb bad' }, `The answer is ${answerText(pr)}`));
-        setTimeout(nextQuestion, 1300);
+        // A miss stays on screen until Next, with the clock paused so reading it costs no time.
+        pausedLeft = Math.max(0, endAt - performance.now());
+        const resume = () => {
+          if (pausedLeft == null) return;
+          endAt = performance.now() + pausedLeft;
+          pausedLeft = null;
+          nextQuestion();
+        };
+        const nextBtn = h('button', { class: 'btn big', onclick: resume }, 'Next ›');
+        fb.replaceChildren(h('div', { class: 'fb bad' },
+          h('p', { class: 'fb-title' }, `The answer is ${answerText(pr)}.`),
+          pr.steps?.length ? h('details', { class: 'how' }, h('summary', {}, 'How to solve it'), h('ol', {}, pr.steps.map(st => h('li', {}, st)))) : null,
+          h('p', { class: 'muted small' }, '⏸ The clock is paused.'),
+          h('div', { class: 'row center' }, nextBtn)));
+        nextBtn.focus();
+        onKey = e => e.key === 'Enter' && resume();
       }
       setMult();
     }

@@ -17,6 +17,7 @@ export function quizItems(unit, tier, rng = Math.random) {
     if (tier !== 1) return { idx };
     if (q.t === 'mc') return { idx, choices: shuffle([q.a, pick(q.c.filter(c => c !== q.a), rng)], rng) };
     if (q.t === 'tap') return { idx, hint: `Tap ${q.a.length} ${q.a.length === 1 ? 'word' : 'words'}, then press Check.` };
+    if (/^[^\p{L}\p{N}]$/u.test(q.a[0])) return { idx, hint: 'Use one of these marks: . ? !' };
     return { idx, hint: `It starts with "${q.a[0][0]}".` };
   });
 }

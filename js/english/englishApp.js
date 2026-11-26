@@ -12,7 +12,6 @@ import { shuffle } from '../shared/util.js';
 import { render as rerender } from '../router.js';
 
 const unitRec = id => (profile().english.units[id] ||= { stars: 0, best: 0, attempts: 0, lessonSeen: false });
-const topTier = (p, id) => (p.settings.unlockAll ? 3 : currentTier(p.english.units[id]?.stars));
 
 function dueReviews(p) {
   const now = Date.now();
@@ -80,7 +79,7 @@ export function viewLesson({ id }) {
         h('button', { class: 'btn alt', disabled: i === 0, onclick: () => { i--; stopSpeaking(); show(); } }, '‹ Back'),
         i < last ? h('button', { class: 'btn', onclick: () => { i++; stopSpeaking(); show(); } }, 'Next ›') : null),
       i === last ? h('div', { class: 'stack quiz-pick' }, h('h3', {}, '🎯 Pick your quiz'),
-        tierList({ tiers: ENGLISH_TIERS, got: r?.stars || 0, top: topTier(p, u.id), onPick: startQuiz })) : null);
+        tierList({ tiers: ENGLISH_TIERS, got: r?.stars || 0, onPick: startQuiz })) : null);
   };
   show();
   return stopSpeaking;
@@ -93,7 +92,7 @@ export function viewQuiz({ id, tier: tierParam }) {
     return;
   }
   const p = profile();
-  const tier = Math.min(topTier(p, u.id), Math.max(1, Number(tierParam) || currentTier(p.english.units[u.id]?.stars)));
+  const tier = Math.min(3, Math.max(1, Number(tierParam) || currentTier(p.english.units[u.id]?.stars)));
   const items = quizItems(u, tier).map(it => ({ ...it, unit: u, key: `${u.id}#${it.idx}` }));
   return runQuiz({ title: `${ENGLISH_TIERS[tier - 1].name} ${starText(tier)}: ${u.title}`, back: `#/english/unit/${u.id}`, items, unit: u, tier });
 }

@@ -162,12 +162,58 @@ const L3 = [
   ['zucchini', 'noun', 'a long green squash', 'We grilled zucchini for dinner.'],
 ];
 
+// Beginner words: short, mostly sound-it-out spellings.
+const L0 = [
+  ['cat', 'noun', 'a small furry pet that says meow', 'The cat sleeps on my bed.'],
+  ['dog', 'noun', 'a pet that barks and wags its tail', 'My dog loves to play fetch.'],
+  ['sun', 'noun', 'the bright star that lights the day', 'The sun is hot today.'],
+  ['hat', 'noun', 'something you wear on your head', 'Dad wears a hat in the sun.'],
+  ['bed', 'noun', 'the place where you sleep', 'I go to bed at eight.'],
+  ['pig', 'noun', 'a pink farm animal that says oink', 'The pig rolls in the mud.'],
+  ['cup', 'noun', 'a small thing you drink from', 'Fill the cup with milk.'],
+  ['red', 'adjective', 'the color of a ripe strawberry', 'She has a red ball.'],
+  ['run', 'verb', 'to move fast on your feet', 'We run in the park.'],
+  ['sit', 'verb', 'to rest on a chair', 'Please sit on the rug.'],
+  ['big', 'adjective', 'large; not small', 'An elephant is very big.'],
+  ['top', 'noun', 'the highest part of something', 'The bird is on the top of the tree.'],
+  ['bus', 'noun', 'a long vehicle that carries many people', 'We ride the bus to school.'],
+  ['fan', 'noun', 'a machine that blows air to cool you', 'Turn on the fan, it is hot.'],
+  ['map', 'noun', 'a drawing that shows where places are', 'Look at the map to find the zoo.'],
+  ['net', 'noun', 'a bag made of strings, used to catch things', 'He caught a fish with a net.'],
+  ['box', 'noun', 'a container with flat sides', 'Put the toys in the box.'],
+  ['fish', 'noun', 'an animal that swims and breathes underwater', 'A fish swims in the pond.'],
+  ['ship', 'noun', 'a very big boat', 'The ship sails across the sea.'],
+  ['frog', 'noun', 'a small green animal that hops and croaks', 'The frog jumps into the pond.'],
+  ['duck', 'noun', 'a bird that swims and says quack', 'A duck swims in the lake.'],
+  ['milk', 'noun', 'a white drink that comes from cows', 'I drink milk with breakfast.'],
+  ['jump', 'verb', 'to push off the ground into the air', 'Can you jump over the rope?'],
+  ['hand', 'noun', 'the part of your arm with fingers', 'Raise your hand to ask.'],
+  ['nest', 'noun', 'a home that birds build for their eggs', 'Three eggs are in the nest.'],
+  ['bell', 'noun', 'a metal thing that rings', 'The school bell rings at nine.'],
+  ['tree', 'noun', 'a tall plant with a trunk and leaves', 'We sat under a shady tree.'],
+  ['book', 'noun', 'pages with words, bound together to read', 'Read me a book, please.'],
+  ['moon', 'noun', 'the bright round light in the night sky', 'The moon is full tonight.'],
+  ['star', 'noun', 'a tiny twinkling light in the night sky', 'I wish on a star.'],
+  ['cake', 'noun', 'a sweet baked treat for birthdays', 'We ate cake at the party.'],
+  ['kite', 'noun', 'a toy that flies in the wind on a string', 'Let us fly a kite at the beach.'],
+  ['bike', 'noun', 'something with two wheels and pedals that you ride', 'I ride my bike to the park.'],
+  ['rain', 'noun', 'water that falls from clouds', 'Take an umbrella, it may rain.'],
+  ['boat', 'noun', 'something that floats and carries people on water', 'We rowed the boat across the lake.'],
+  ['play', 'verb', 'to have fun with toys or games', 'Can I play outside?'],
+  ['ball', 'noun', 'a round toy you throw, kick or bounce', 'Kick the ball to me.'],
+  ['blue', 'adjective', 'the color of a clear sky', 'The sky is blue today.'],
+  ['green', 'adjective', 'the color of grass', 'Frogs are often green.'],
+  ['happy', 'adjective', 'feeling glad', 'I am happy when I see my friends.'],
+];
+
 const toWords = arr => arr.map(([w, pos, def, sent]) => ({ w, pos, def, sent }));
 
 const STARTER = 'Starter lists (with meanings and sentences)';
+// Starter lists come first so beginners see them at the top.
 export const BUILTIN_LISTS = [
-  ...WOC_2024.map(l => ({ ...l, builtin: true })),
+  { id: 'starter-0', name: 'Level 0 - Little Bee', emoji: '🐣', group: STARTER, builtin: true, words: toWords(L0) },
   { id: 'starter-1', name: 'Level 1 - Busy Bee', emoji: '🐝', group: STARTER, builtin: true, words: toWords(L1) },
   { id: 'starter-2', name: 'Level 2 - Honey Maker', emoji: '🍯', group: STARTER, builtin: true, words: toWords(L2) },
   { id: 'starter-3', name: 'Level 3 - Queen Bee', emoji: '👑', group: STARTER, builtin: true, words: toWords(L3) },
+  ...WOC_2024.map(l => ({ ...l, builtin: true })),
 ];

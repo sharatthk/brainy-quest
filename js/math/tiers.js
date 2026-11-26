@@ -2,7 +2,7 @@
 // Passing a tier's session earns its star and opens the next tier (rules in js/shared/mastery.js). Pure, unit tested.
 import {
   SKILLS, makeAdd, makeSub, makeMul, makeDivision, countCarries, countBorrows, borrowsAcrossZero, until, nd, pair,
-  mulSolution, divSolution, genPlace, genRound, genMulFacts, genDivFacts, genFracId, genFracEquiv, genFracCompare,
+  mulSolution, divSolution, genCount, genFact, genBond, genSkip, genPlace, genRound, genMulFacts, genDivFacts, genFracId, genFracEquiv, genFracCompare,
   genFracAdd, genFracOf, genDecPlace, genDecAdd, genPctIntro, genPctOf, genWordAddSub, genWordMulDiv,
 } from './skills.js';
 import { randInt, pick } from '../shared/util.js';
@@ -57,6 +57,13 @@ function divBy2Digits(rng, lo, hi) {
 const T = (label, gen) => ({ label, gen });
 
 export const TIERS = {
+  // ---- Math basics ----
+  'basic-count': [T('Count the pictures', rng => genCount(rng, 1)), T('Before and after', rng => genCount(rng, 2)), T('Which is bigger?', rng => genCount(rng, 3))],
+  'basic-add': [T('Sums to 5', rng => genFact(rng, { max: 5 })), T('Sums to 10', rng => genFact(rng, { max: 10 })), T('Sums to 18: 8 + 7', rng => genFact(rng, { max: 18 }))],
+  'basic-sub': [T('Within 5', rng => genFact(rng, { op: '−', max: 5 })), T('Within 10', rng => genFact(rng, { op: '−', max: 10 })), T('From the teens: 15 − 7', rng => genFact(rng, { op: '−', teen: true }))],
+  'basic-bonds': [T('Make 5', rng => genBond(rng, 5)), T('Make 10', rng => genBond(rng, 10)), T('Make 20', rng => genBond(rng, 20))],
+  'basic-skip': [T('By 2s', rng => genSkip(rng, [2])), T('By 5s and 10s', rng => genSkip(rng, [5, 10])), T('By 3s and 4s', rng => genSkip(rng, [3, 4]))],
+
   // ---- Number sense ----
   'num-place': [T('2 and 3-digit numbers', rng => genPlace(rng, [2, 3])), T('Thousands', rng => genPlace(rng, [4])), T('Up to 6 digits', rng => genPlace(rng, [5, 6]))],
   'num-round': [T('2-digit to the nearest ten', rng => genRound(rng, 1)), T('Nearest ten or hundred', rng => genRound(rng, 2)), T('Hundreds and thousands', rng => genRound(rng, 3))],

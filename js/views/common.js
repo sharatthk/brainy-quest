@@ -32,14 +32,15 @@ export const TIER_NAMES = ['Easy', 'Medium', 'Hard'];
 export const starText = tier => '★'.repeat(tier);
 
 // The three star tiers of a stage. tiers: [{ name, label }] (name defaults to Easy/Medium/Hard);
-// got: stars earned; top: highest tier open now; onPick(tier) starts one.
-export function tierList({ tiers, got, top, onPick }) {
+// got: stars earned; onPick(tier) starts one. Every tier is open; the next one to earn is marked.
+export function tierList({ tiers, got, onPick }) {
+  const next = Math.min(3, got + 1);
   return h('div', { class: 'tier-list' }, tiers.map((t, k) => {
-    const tier = k + 1, done = got >= tier, can = tier <= top;
-    return h('button', { class: `tier-row ${done ? 'done' : ''} ${can ? '' : 'locked'}`, disabled: can ? null : true, onclick: () => onPick(tier) },
+    const tier = k + 1, done = got >= tier;
+    return h('button', { class: `tier-row ${done ? 'done' : ''} ${tier === next && !done ? 'suggested' : ''}`, onclick: () => onPick(tier) },
       h('span', { class: 'tier-stars' }, starText(tier)),
       h('span', { class: 'tier-text' }, h('b', {}, t.name || TIER_NAMES[k]), h('small', {}, t.label)),
-      h('span', { class: 'tier-state', 'aria-label': done ? 'passed' : can ? 'open' : 'locked' }, done ? '✅' : can ? '▶' : '🔒'));
+      h('span', { class: 'tier-state', 'aria-label': done ? 'passed' : 'play' }, done ? '✅' : '▶'));
   }));
 }
 

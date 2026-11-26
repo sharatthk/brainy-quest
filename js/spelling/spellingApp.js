@@ -27,11 +27,10 @@ const tiersOf = list => {
   return tierCache.get(list);
 };
 const listStars = (p, id) => (p.spelling.stars ||= {})[id] || 0;
-const topTier = (p, id) => (p.settings.unlockAll ? 3 : currentTier(listStars(p, id)));
-// The tier from the URL if it is open and has words, else the one the player is working on.
+// The tier from the URL (any tier with words), else the one the player is working on.
 function tierFor(list, param) {
-  const p = profile(), top = topTier(p, list.id), want = Number(param) || currentTier(listStars(p, list.id));
-  const t = Math.min(top, Math.max(1, want));
+  const p = profile(), want = Number(param) || currentTier(listStars(p, list.id));
+  const t = Math.min(3, Math.max(1, want));
   return tiersOf(list)[t - 1].length ? t : null;
 }
 const picked = {}; // tier the player tapped on each list card during this visit
@@ -89,9 +88,9 @@ export function viewSpellingHome() {
     if (!groups.has(g)) groups.set(g, h('div', { class: 'list-grid' }));
     const s = listStats(list);
     const total = list.words.length || 1;
-    const got = listStars(p, list.id), top = topTier(p, list.id), tiers = tiersOf(list);
+    const got = listStars(p, list.id), tiers = tiersOf(list);
     // Default to the tier being worked on, so earning a star moves the card on to the next tier.
-    let tier = Math.min(top, picked[list.id] || currentTier(got));
+    let tier = picked[list.id] || currentTier(got);
     if (!tiers[tier - 1].length) tier = 1;
     const actions = h('div', { class: 'list-actions' });
     const drawActions = () => {
@@ -102,15 +101,15 @@ export function viewSpellingHome() {
         h('a', { class: 'btn alt', href: `#/spelling/challenge/${list.id}/${t}` }, '🎤 Bee Challenge'));
     };
     const pickRow = h('div', { class: 'tier-pick small-pick', role: 'group', 'aria-label': 'Word difficulty' }, tiers.map((words, k) => {
-      const t = k + 1, can = t <= top && words.length > 0;
-      const b = h('button', { class: t === tier ? 'on' : '', disabled: can ? null : true, title: can ? '' : `Pass the ${starText(t - 1)} Bee Challenge first`,
+      const t = k + 1, can = words.length > 0;
+      const b = h('button', { class: t === tier ? 'on' : '', disabled: can ? null : true,
         onclick: () => {
           tier = picked[list.id] = t;
           pickRow.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
           sfx.click();
           drawActions();
         } },
-      h('span', { class: 'tier-stars' }, got >= t ? `${starText(t)} ✅` : can ? starText(t) : `🔒 ${starText(t)}`),
+      h('span', { class: 'tier-stars' }, got >= t ? `${starText(t)} ✅` : starText(t)),
       h('small', {}, TIER_NAMES[k]), h('small', {}, `${words.length} words`));
       return b;
     }));

@@ -81,7 +81,6 @@ export function viewParent() {
   const goalSel = h('select', { 'aria-label': 'Daily goal', onchange: e => { p.settings.dailyGoal = Number(e.target.value); save(); } },
     [30, 60, 100, 150].map(v => h('option', { value: v, selected: v === p.settings.dailyGoal ? true : null }, `${v} XP (${{ 30: 'light', 60: 'regular', 100: 'serious', 150: 'intense' }[v]})`)));
   main.append(h('section', { class: 'card stack' }, h('h3', {}, '⚙️ Settings'),
-    toggle('Unlock every math skill (skip the star requirement)', p.settings.unlockAll, v => { p.settings.unlockAll = v; save(); }),
     toggle('Sound effects', p.settings.sound, v => { p.settings.sound = v; save(); }),
     h('label', { class: 'field' }, 'Daily goal ', goalSel),
     speechSupported() ? h('label', { class: 'field' }, 'Spelling voice ', voiceSel) : h('p', { class: 'warn' }, 'Speech is not supported in this browser.'),

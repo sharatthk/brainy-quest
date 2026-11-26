@@ -649,9 +649,67 @@ export function genWordMulDiv(rng, level = 2) {
   return { kind: 'input', prompt: `${n} shares <b>${a}</b> ${it} equally among <b>${b}</b> friends. How many does each friend get?`, answer: q, steps: ['Sharing equally means divide.', `${a} ÷ ${b} = ${q}, because ${b} × ${q} = ${a}.`] };
 }
 
+// ---------- Math basics (counting, facts to 20, number bonds, skip counting) ----------
+
+const THINGS = ['🍎', '⭐', '🐟', '🌸', '🚗', '🧁', '🐞', '⚽'];
+const pictureRow = (emoji, n) => `<span class="count-pics">${Array.from({ length: n }, (_, i) => `${i && i % 5 === 0 ? '<span class="gap"></span>' : ''}${emoji}`).join('')}</span>`;
+
+// level 1: count up to 10 pictures. 2: the number before or after (to 100). 3: which number is bigger.
+export function genCount(rng, level = 1) {
+  if (level === 1) {
+    const n = randInt(rng, 3, 10), e = pick(THINGS, rng);
+    return { kind: 'input', prompt: `How many? ${pictureRow(e, n)}`, answer: n, steps: [`Touch each one as you count: ${Array.from({ length: n }, (_, i) => i + 1).join(', ')}. There are ${n}.`] };
+  }
+  if (level === 2) {
+    const n = randInt(rng, 11, 98), after = rng() < 0.5;
+    return {
+      kind: 'input', prompt: `What number comes <b>${after ? 'after' : 'before'}</b> <span class="big-num">${n}</span>?`, answer: after ? n + 1 : n - 1,
+      steps: [after ? `Count up one from ${n}: ${n}, ${n + 1}.` : `Count back one from ${n}: ${n}, ${n - 1}.`],
+    };
+  }
+  const [a, b] = until(() => [randInt(rng, 10, 99), randInt(rng, 10, 99)], ([x, y]) => x !== y && (Math.floor(x / 10) === Math.floor(y / 10) || Math.abs(x - y) < 15));
+  const big = Math.max(a, b);
+  return {
+    kind: 'choice', prompt: 'Which number is <b>bigger</b>?', choices: [String(a), String(b)], answer: String(big),
+    steps: [Math.floor(a / 10) === Math.floor(b / 10) ? `Both have ${Math.floor(a / 10)} tens, so compare the ones: ${big} has more.` : `Compare the tens first: ${big} has more tens.`],
+  };
+}
+
+// Facts: + or − with numbers up to max. sub: subtraction; teen: take away from 11-18 (crossing ten).
+export function genFact(rng, { op = '+', max = 10, teen = false } = {}) {
+  if (op === '+') {
+    const [a, b] = until(() => [randInt(rng, 1, Math.min(9, max)), randInt(rng, 1, Math.min(9, max))], ([x, y]) => x + y <= max && (max <= 10 || x + y > 10));
+    const big = Math.max(a, b), small = Math.min(a, b);
+    return { kind: 'input', prompt: `<span class="big-num">${a} + ${b} = ?</span>`, answer: a + b, steps: [`Start at the bigger number, ${big}, and count on ${small}: ${Array.from({ length: small }, (_, i) => big + i + 1).join(', ')}. So ${a} + ${b} = ${a + b}.`] };
+  }
+  const [a, b] = teen
+    ? until(() => [randInt(rng, 11, 18), randInt(rng, 2, 9)], ([x, y]) => x - y < 10)
+    : until(() => [randInt(rng, 2, max), randInt(rng, 1, max)], ([x, y]) => y < x);
+  const how = teen
+    ? `Take ${a - 10} away to get to 10, then ${b - (a - 10)} more: 10 − ${b - (a - 10)} = ${a - b}.`
+    : `Start at ${a} and count back ${b}: ${Array.from({ length: b }, (_, i) => a - i - 1).join(', ')}.`;
+  return { kind: 'input', prompt: `<span class="big-num">${a} − ${b} = ?</span>`, answer: a - b, steps: [how, `So ${a} − ${b} = ${a - b}.`] };
+}
+
+// Number bonds: two parts that make the whole (5, 10 or 20).
+export function genBond(rng, whole = 10) {
+  const part = randInt(rng, whole === 20 ? 2 : 1, whole - 1), first = rng() < 0.5;
+  const shown = first ? `${part} + ? = ${whole}` : `? + ${part} = ${whole}`;
+  return { kind: 'input', prompt: `<span class="big-num">${shown}</span>`, answer: whole - part, steps: [`Count up from ${part} to ${whole}: that is ${whole - part} more.`, `${part} + ${whole - part} = ${whole}.`] };
+}
+
+// Skip counting: fill in the missing number of a sequence counting by one of steps.
+export function genSkip(rng, steps = [2]) {
+  const by = pick(steps, rng), start = by * randInt(rng, 0, by >= 5 ? 6 : 8), seq = Array.from({ length: 5 }, (_, i) => start + by * i);
+  const hole = randInt(rng, 2, 4);
+  const shown = seq.map((n, i) => `<span>${i === hole ? '<span class="qbox">?</span>' : n}${i < seq.length - 1 ? ',' : ''}</span>`).join(' ');
+  return { kind: 'input', prompt: `Count by <b>${by}s</b>: <span class="seq">${shown}</span>`, answer: seq[hole], steps: [`Each number is ${by} more than the one before: ${seq[hole - 1]} + ${by} = ${seq[hole]}.`] };
+}
+
 // ---------- Skill tree ----------
 
 export const UNITS = [
+  { id: 'basic', title: 'Math Basics', emoji: '🧸' },
   { id: 'num', title: 'Number Sense', emoji: '🔢' },
   { id: 'add', title: 'Addition', emoji: '➕' },
   { id: 'sub', title: 'Subtraction', emoji: '➖' },
@@ -665,12 +723,18 @@ const S = (id, unit, title, emoji, requires, desc, gen, extra = {}) => ({ id, un
 export const pair = (rng, da, db) => [nd(rng, da), nd(rng, db)];
 
 export const SKILLS = [
+  S('basic-count', 'basic', 'Counting', '🍎', [], 'Count, before and after, bigger', rng => genCount(rng, 1)),
+  S('basic-add', 'basic', 'Adding to 20', '🧮', ['basic-count'], 'Facts: 4 + 3, 8 + 7', rng => genFact(rng, { max: 10 })),
+  S('basic-sub', 'basic', 'Taking away', '🍪', ['basic-add'], 'Facts: 9 − 4, 15 − 7', rng => genFact(rng, { op: '−', max: 10 })),
+  S('basic-bonds', 'basic', 'Number bonds', '🤝', ['basic-add'], 'Make 10: 7 + ? = 10', rng => genBond(rng, 10)),
+  S('basic-skip', 'basic', 'Skip counting', '🦘', ['basic-count'], 'By 2s, 5s and 10s', rng => genSkip(rng, [2, 5, 10])),
+
   S('num-place', 'num', 'Place value', '🏠', [], 'What each digit is worth', genPlace),
   S('num-round', 'num', 'Rounding', '🎯', ['num-place'], 'Round to the nearest 10 or 100', genRound),
   S('word-add-sub', 'num', 'Story problems: + and −', '📖', ['add-3d-c1', 'sub-3d-b1'], 'Read, decide, solve', genWordAddSub),
   S('word-mul-div', 'num', 'Story problems: × and ÷', '📚', ['mul-2x1', 'div-2x1'], 'Equal groups and sharing', genWordMulDiv),
 
-  S('add-2d-nc', 'add', '2-digit, no carrying', '🌱', [], 'Warm up: 34 + 25', rng => makeAdd(...until(() => pair(rng, 2, 2), ([a, b]) => countCarries(a, b) === 0)), { guided: true }),
+  S('add-2d-nc', 'add', '2-digit, no carrying', '🌱', ['basic-add'], 'Warm up: 34 + 25', rng => makeAdd(...until(() => pair(rng, 2, 2), ([a, b]) => countCarries(a, b) === 0)), { guided: true }),
   S('add-2d-c', 'add', '2-digit with carrying', '🌿', ['add-2d-nc'], 'Carry the 1: 47 + 38', rng => makeAdd(...until(() => pair(rng, 2, 2), ([a, b]) => countCarries(a, b) >= 1)), { guided: true, gym: true }),
   S('add-3d-nc', 'add', '3-digit, no carrying', '🌳', ['add-2d-c'], 'Bigger numbers: 312 + 456', rng => makeAdd(...until(() => pair(rng, 3, 3), ([a, b]) => countCarries(a, b) === 0)), { guided: true }),
   S('add-3d-c1', 'add', '3-digit, one carry', '🍀', ['add-3d-nc'], 'One carry: 358 + 217', rng => makeAdd(...until(() => pair(rng, 3, 3), ([a, b]) => countCarries(a, b) === 1)), { guided: true, gym: true }),
@@ -730,9 +794,10 @@ export const SKILLS = [
 
 export const skillById = id => SKILLS.find(s => s.id === id);
 
-export function isUnlocked(skill, p) {
-  if (p.settings.unlockAll) return true;
+// Every skill can be played any time. A skill is "reached" once its prerequisites have ★★ (the suggested
+// path) or the player has started it; Daily Mix and Speed "Everything I know" draw from reached skills.
+export function isReached(skill, p) {
   const recs = p.math.skills;
-  if (recs[skill.id]?.unlocked) return true;
+  if (recs[skill.id]?.attempts || recs[skill.id]?.stars) return true;
   return skill.requires.every(r => (recs[r]?.stars || 0) >= 2);
 }

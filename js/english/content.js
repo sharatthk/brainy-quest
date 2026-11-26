@@ -5,6 +5,7 @@
 //   fill: { t:'fill', q, s:'sentence with ___', a:['accepted answers'], e }
 
 export const ENGLISH_SECTIONS = [
+  { id: 'basics', title: 'English Basics', emoji: '🧸' },
   { id: 'pos', title: 'Parts of Speech', emoji: '🧱' },
   { id: 'sent', title: 'Sentences', emoji: '🧩' },
   { id: 'punct', title: 'Punctuation & Capitals', emoji: '✏️' },
@@ -17,6 +18,92 @@ const U = (id, section, title, emoji, lessons, questions) => ({ id, section, tit
 const L = (title, body) => ({ title, body });
 
 export const ENGLISH_UNITS = [
+  // ---------------- English Basics (for beginners) ----------------
+  U('abc', 'basics', 'ABC Order & Vowels', '🔤', [
+    L('Vowels and consonants', '<p>The alphabet has 26 letters. Five of them are <b>vowels</b>: <b>a, e, i, o, u</b>.</p><p>All the other letters are <b>consonants</b>: b, c, d, f, g and more.</p><p class="tip">Every word has at least one vowel sound. Look: c<b>a</b>t, d<b>o</b>g, s<b>u</b>n.</p>'),
+    L('ABC order', '<p>To put words in <b>ABC order</b>, look at the <b>first letter</b> of each word and follow the alphabet.</p><p><i>apple, bear, cat, dog</i></p><p class="tip">If two words start with the same letter, look at the second letter: <i>ball</i> comes before <i>bed</i>.</p>'),
+  ], [
+    { t: 'mc', q: 'Which letter is a vowel?', c: ['b', 'e', 't', 'm'], a: 'e', e: 'The vowels are a, e, i, o and u.' },
+    { t: 'mc', q: 'Which letter is a consonant?', c: ['a', 'o', 'k', 'u'], a: 'k', e: 'K is not a vowel, so it is a consonant.' },
+    { t: 'mc', q: 'Which word comes first in ABC order?', c: ['dog', 'cat', 'fish', 'egg'], a: 'cat', e: 'C comes before d, e and f.' },
+    { t: 'mc', q: 'Which word comes last in ABC order?', c: ['zoo', 'apple', 'moon', 'tree'], a: 'zoo', e: 'Z is the last letter of the alphabet.' },
+    { t: 'mc', q: 'Which letter comes right after "m"?', c: ['l', 'n', 'o', 'p'], a: 'n', e: '... l, m, n, o, p ...' },
+    { t: 'mc', q: 'Which group is in ABC order?', c: ['bat, cup, dig', 'cup, bat, dig', 'dig, cup, bat', 'bat, dig, cup'], a: 'bat, cup, dig', e: 'b, c, d follow the alphabet.' },
+    { t: 'mc', q: 'Which word comes first: "ball" or "bed"?', c: ['ball', 'bed'], a: 'ball', e: 'Both start with b, so look at the second letter: a comes before e.' },
+    { t: 'fill', q: 'Write the missing vowel.', s: 'The vowels are a, e, i, o and ___.', a: ['u'], e: 'The five vowels are a, e, i, o, u.' },
+    { t: 'tap', q: 'Tap the word that starts with a vowel.', s: 'My cat ate the fish.', a: ['ate'], e: 'Ate starts with a, a vowel.' },
+  ]),
+  U('rhymes', 'basics', 'Rhyming Words', '🎵', [
+    L('What is a rhyme?', '<p>Words <b>rhyme</b> when they end with the same sound.</p><ul><li>c<b>at</b>, h<b>at</b>, b<b>at</b></li><li>s<b>un</b>, f<b>un</b>, r<b>un</b></li></ul><p class="tip">Say the words out loud and listen to the end.</p>'),
+    L('Rhymes in poems', '<p>Poems and songs often rhyme:</p><p><i>Twinkle, twinkle, little <b>star</b>,<br>How I wonder what you <b>are</b>.</i></p><p>Star and are end with the same sound.</p>'),
+  ], [
+    { t: 'mc', q: 'Which word rhymes with "cat"?', c: ['dog', 'hat', 'cup', 'sit'], a: 'hat', e: 'Cat and hat both end with "at".' },
+    { t: 'mc', q: 'Which word rhymes with "sun"?', c: ['fun', 'sit', 'sea', 'moon'], a: 'fun', e: 'Sun and fun both end with "un".' },
+    { t: 'mc', q: 'Which word rhymes with "cake"?', c: ['lake', 'cook', 'kite', 'cap'], a: 'lake', e: 'Cake and lake both end with "ake".' },
+    { t: 'mc', q: 'Which word rhymes with "bed"?', c: ['bad', 'red', 'bee', 'bud'], a: 'red', e: 'Bed and red both end with "ed".' },
+    { t: 'mc', q: 'Which pair rhymes?', c: ['dog / log', 'dog / dig', 'cat / car', 'sun / sit'], a: 'dog / log', e: 'Dog and log end with "og".' },
+    { t: 'mc', q: 'Which word does NOT rhyme with "pig"?', c: ['big', 'dig', 'wig', 'pin'], a: 'pin', e: 'Pin ends with "in", not "ig".' },
+    { t: 'mc', q: 'Which word rhymes with "night"?', c: ['kite', 'nice', 'knit', 'note'], a: 'kite', e: 'Night and kite end with the same sound, even though they are spelled differently.' },
+    { t: 'fill', q: 'Finish the rhyme.', s: 'The cat sat on the ___.', a: ['mat', 'hat', 'bat', 'rat'], e: 'Mat rhymes with cat and sat.' },
+    { t: 'tap', q: 'Tap the word that rhymes with "fox".', s: 'The toy is in a box.', a: ['box'], e: 'Fox and box both end with "ox".' },
+  ]),
+  U('naming-doing', 'basics', 'Naming & Doing Words', '🐶', [
+    L('Naming words', '<p><b>Naming words</b> (nouns) name a person, an animal, a place or a thing.</p><p><i>mom, dog, park, ball</i></p>'),
+    L('Doing words', '<p><b>Doing words</b> (verbs) tell what someone does.</p><p><i>run, jump, eat, sing</i></p><p><i>The <b>dog</b> (naming) <b>runs</b> (doing).</i></p>'),
+  ], [
+    { t: 'mc', q: 'Which is a naming word?', c: ['jump', 'ball', 'run', 'sing'], a: 'ball', e: 'A ball is a thing.' },
+    { t: 'mc', q: 'Which is a doing word?', c: ['tree', 'girl', 'swim', 'cup'], a: 'swim', e: 'Swim is something you do.' },
+    { t: 'mc', q: 'Which word names an animal?', c: ['happy', 'cow', 'fast', 'eat'], a: 'cow', e: 'A cow is an animal.' },
+    { t: 'mc', q: 'Which word names a place?', c: ['school', 'clap', 'red', 'big'], a: 'school', e: 'School is a place.' },
+    { t: 'tap', q: 'Tap the doing word.', s: 'The bird sings.', a: ['sings'], e: 'Sings tells what the bird does.' },
+    { t: 'tap', q: 'Tap the naming word.', s: 'The frog jumps.', a: ['frog'], e: 'Frog names an animal.' },
+    { t: 'tap', q: 'Tap the two naming words.', s: 'The boy kicks the ball.', a: ['boy', 'ball'], e: 'Boy is a person and ball is a thing.' },
+    { t: 'mc', q: 'In "Mom cooks dinner," what is the doing word?', c: ['Mom', 'cooks', 'dinner'], a: 'cooks', e: 'Cooks is what Mom does.' },
+    { t: 'fill', q: 'Write a doing word.', s: 'Fish can ___ in the water.', a: ['swim'], e: 'Fish swim.' },
+  ]),
+  U('one-many', 'basics', 'One or More?', '🍎', [
+    L('Adding -s', '<p>When there is <b>more than one</b>, we usually add <b>-s</b>.</p><p><i>one cat → two cats</i><br><i>one book → three books</i></p>'),
+    L('Adding -es', '<p>Words that end in <b>s, x, ch</b> or <b>sh</b> add <b>-es</b>.</p><p><i>one bus → two buses</i><br><i>one box → two boxes</i><br><i>one dish → two dishes</i></p>'),
+  ], [
+    { t: 'mc', q: 'One dog, two ___', c: ['dog', 'dogs', 'doges', 'dogz'], a: 'dogs', e: 'Add -s for more than one.' },
+    { t: 'mc', q: 'One box, two ___', c: ['boxs', 'boxes', 'box', 'boxies'], a: 'boxes', e: 'Box ends in x, so add -es.' },
+    { t: 'mc', q: 'One bus, three ___', c: ['buss', 'bus', 'buses', 'busies'], a: 'buses', e: 'Bus ends in s, so add -es.' },
+    { t: 'mc', q: 'Which word means more than one?', c: ['cup', 'hat', 'pens', 'sock'], a: 'pens', e: 'Pens has -s, so there is more than one.' },
+    { t: 'mc', q: 'One dish, two ___', c: ['dishs', 'dishes', 'dish', 'dishies'], a: 'dishes', e: 'Dish ends in sh, so add -es.' },
+    { t: 'fill', q: 'Write the word for more than one.', s: 'One star, many ___.', a: ['stars'], e: 'Add -s: stars.' },
+    { t: 'fill', q: 'Write the word for more than one.', s: 'One fox, two ___.', a: ['foxes'], e: 'Fox ends in x, so add -es.' },
+    { t: 'tap', q: 'Tap the word that means more than one.', s: 'I see three birds.', a: ['birds'], e: 'Birds ends in -s: more than one bird.' },
+    { t: 'mc', q: 'One bench, two ___', c: ['benchs', 'benches', 'bench', 'benchies'], a: 'benches', e: 'Bench ends in ch, so add -es.' },
+  ]),
+  U('first-sentences', 'basics', 'My First Sentences', '✍️', [
+    L('What is a sentence?', '<p>A <b>sentence</b> tells a whole idea.</p><p><i>The cat is sleeping.</i> ✅<br><i>the cat</i> ❌ (what about the cat?)</p>'),
+    L('Start and stop', '<p>A sentence <b>starts with a capital letter</b> and <b>ends with a mark</b>: a period (.), a question mark (?) or an exclamation mark (!).</p><p><i><b>W</b>e play outside<b>.</b></i><br><i><b>D</b>o you like apples<b>?</b></i></p><p class="tip">The word <b>I</b> is always a capital letter.</p>'),
+  ], [
+    { t: 'mc', q: 'Which one is a sentence?', c: ['the big dog', 'The big dog barks.', 'barks loud', 'big dog'], a: 'The big dog barks.', e: 'It tells a whole idea, starts with a capital and ends with a period.' },
+    { t: 'mc', q: 'Which sentence is written correctly?', c: ['we like cake.', 'We like cake.', 'We like cake', 'we like cake'], a: 'We like cake.', e: 'Capital letter at the start, period at the end.' },
+    { t: 'mc', q: 'What mark ends a question?', c: ['.', '?', '!', ','], a: '?', e: 'Questions end with a question mark.' },
+    { t: 'mc', q: 'Which sentence asks something?', c: ['I have a hat.', 'Where is my hat?', 'My hat is red.', 'I love my hat!'], a: 'Where is my hat?', e: 'It asks a question and ends with ?.' },
+    { t: 'mc', q: 'Which is right?', c: ['Mom and i ran.', 'Mom and I ran.', 'mom and i ran.', 'Mom And I ran.'], a: 'Mom and I ran.', e: 'The word I is always a capital letter.' },
+    { t: 'tap', q: 'Tap the word that needs a capital letter.', s: 'my dog is fluffy.', a: ['my'], e: 'The first word of a sentence starts with a capital: My.' },
+    { t: 'fill', q: 'Write the missing end mark.', s: 'The sun is hot___', a: ['.', '!'], e: 'It tells something, so it ends with a period (or ! if it is exciting).' },
+    { t: 'mc', q: 'Which sentence shows strong feeling?', c: ['I see a bug.', 'Is that a bug?', 'Wow, a giant bug!', 'the bug'], a: 'Wow, a giant bug!', e: 'An exclamation mark shows strong feeling.' },
+    { t: 'mc', q: 'What does every sentence start with?', c: ['a capital letter', 'a period', 'a number', 'a comma'], a: 'a capital letter', e: 'Sentences always start with a capital letter.' },
+  ]),
+  U('opposites', 'basics', 'Opposites', '↔️', [
+    L('What are opposites?', '<p><b>Opposites</b> are words that mean very different things.</p><ul><li>big ↔ small</li><li>hot ↔ cold</li><li>up ↔ down</li><li>happy ↔ sad</li></ul>'),
+    L('Using opposites', '<p>Opposites help us compare.</p><p><i>The elephant is <b>big</b>. The mouse is <b>small</b>.</i></p>'),
+  ], [
+    { t: 'mc', q: 'What is the opposite of "hot"?', c: ['warm', 'cold', 'sunny', 'red'], a: 'cold', e: 'Hot and cold are opposites.' },
+    { t: 'mc', q: 'What is the opposite of "up"?', c: ['down', 'top', 'over', 'high'], a: 'down', e: 'Up and down are opposites.' },
+    { t: 'mc', q: 'What is the opposite of "happy"?', c: ['glad', 'sad', 'funny', 'kind'], a: 'sad', e: 'Happy and sad are opposites.' },
+    { t: 'mc', q: 'What is the opposite of "fast"?', c: ['quick', 'slow', 'run', 'far'], a: 'slow', e: 'Fast and slow are opposites.' },
+    { t: 'mc', q: 'What is the opposite of "open"?', c: ['shut', 'door', 'wide', 'push'], a: 'shut', e: 'Open and shut are opposites.' },
+    { t: 'mc', q: 'Which pair are opposites?', c: ['day / night', 'cat / kitten', 'big / large', 'run / jog'], a: 'day / night', e: 'Day and night mean very different things.' },
+    { t: 'fill', q: 'Write the opposite.', s: 'The elephant is big. The mouse is ___.', a: ['small', 'little', 'tiny'], e: 'Small is the opposite of big.' },
+    { t: 'fill', q: 'Write the opposite.', s: 'Ice is cold. Fire is ___.', a: ['hot'], e: 'Hot is the opposite of cold.' },
+    { t: 'tap', q: 'Tap the opposite of "dry".', s: 'My socks are wet from the rain.', a: ['wet'], e: 'Wet and dry are opposites.' },
+  ]),
+
   // ---------------- Parts of Speech ----------------
   U('nouns', 'pos', 'Nouns', '🏷️', [
     L('What is a noun?', '<p>A <b>noun</b> names a <b>person</b>, <b>place</b>, <b>thing</b>, or <b>idea</b>.</p><ul><li>Person: <i>teacher, sister, Mia</i></li><li>Place: <i>park, kitchen, Japan</i></li><li>Thing: <i>pencil, dog, rocket</i></li><li>Idea: <i>happiness, bravery, freedom</i></li></ul><p class="tip">Test: can you put <b>"the"</b> or <b>"a"</b> in front of it? Then it is probably a noun.</p>'),

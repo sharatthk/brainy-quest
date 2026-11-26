@@ -168,3 +168,28 @@ test('star tier rules', () => {
   assert.equal(needToPass(6), 5);
   assert.ok(passed(8, 10) && !passed(7, 10) && !passed(0, 0));
 });
+
+test('math basics tiers', () => {
+  const rng = seeded(11);
+  const sample = (id, t, n = 80) => Array.from({ length: n }, () => genAt(skillById(id), t, rng));
+  const nums = p => p.prompt.replace(/<[^>]+>/g, ' ').match(/\d+/g).map(Number);
+  assert.ok(sample('basic-count', 1).every(p => p.answer >= 3 && p.answer <= 10 && (p.prompt.match(/\p{Extended_Pictographic}/gu) || []).length === p.answer), 'count the pictures');
+  assert.ok(sample('basic-add', 1).every(p => p.answer <= 5) && sample('basic-add', 2).every(p => p.answer <= 10));
+  assert.ok(sample('basic-add', 3).every(p => p.answer > 10 && p.answer <= 18 && nums(p).every(n => n <= 9 || n === p.answer)), 'two 1-digit numbers crossing 10');
+  assert.ok(sample('basic-sub', 3).every(p => { const [a, b] = nums(p); return a > 10 && a - b < 10 && b <= 9; }), 'subtract across 10');
+  for (const [t, whole] of [[1, 5], [2, 10], [3, 20]]) assert.ok(sample('basic-bonds', t).every(p => nums(p).includes(whole) && p.answer > 0 && p.answer < whole));
+  assert.ok(sample('basic-skip', 1).every(p => /by <b>2s/.test(p.prompt)) && sample('basic-skip', 3).every(p => /by <b>[34]s/.test(p.prompt)));
+  assert.equal(UNITS[0].id, 'basic', 'basics come first on the map');
+});
+
+test('every skill is playable; reached skills follow the suggested path', async () => {
+  const { isReached } = await import('../js/math/skills.js');
+  const p = { math: { skills: {} } };
+  assert.ok(isReached(skillById('basic-count'), p), 'no prerequisites');
+  assert.ok(!isReached(skillById('basic-add'), p));
+  p.math.skills['basic-count'] = { stars: 2 };
+  assert.ok(isReached(skillById('basic-add'), p), '★★ on the prerequisite');
+  assert.ok(!isReached(skillById('div-3x2'), p));
+  p.math.skills['div-3x2'] = { attempts: 1, stars: 0 };
+  assert.ok(isReached(skillById('div-3x2'), p), 'a skill the player jumped to counts as reached');
+});
