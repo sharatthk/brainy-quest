@@ -1,7 +1,7 @@
 // Speed Challenge: answer as many problems as you can before the timer runs out.
 // Points grow with difficulty, quick answers and streaks. Records are kept per topic and timer.
 import { h, toast } from '../ui.js';
-import { screen } from '../views/common.js';
+import { screen, TIER_NAMES, starText } from '../views/common.js';
 import { profile, save, getState } from '../store.js';
 import { SKILLS, UNITS, isUnlocked, checkAnswer, answerText } from './skills.js';
 import { buildQuestion, isEmptyAnswer } from './question.js';
@@ -11,6 +11,7 @@ import { confetti } from '../shared/confetti.js';
 import { pick } from '../shared/util.js';
 import { go } from '../router.js';
 import { multiplier, pointsFor, coinsFor } from './scoring.js';
+import { genAt } from './tiers.js';
 
 export const TIMERS = [
   { secs: 60, name: 'Sprint', emoji: '⚡' },
@@ -20,18 +21,19 @@ export const TIMERS = [
 const MIX = { id: 'mix', title: 'Everything I know', emoji: '🎲' };
 
 
-// Difficulty 1-3 from the skill's position inside its unit (later skills are harder).
-function tierOf(skill) {
-  const list = SKILLS.filter(s => s.unit === skill.unit);
-  return 1 + Math.floor((list.indexOf(skill) / list.length) * 3);
-}
+const DIFFICULTY = [
+  { tier: 1, blurb: 'Warm-up problems' },
+  { tier: 2, blurb: 'Standard problems' },
+  { tier: 3, blurb: 'Hard problems, big points' },
+];
 
 const openSkills = (p, topic) => SKILLS.filter(s => isUnlocked(s, p) && (topic === 'mix' || s.unit === topic));
 const topics = () => [MIX, ...UNITS];
-const recKey = (topic, secs) => `${topic}-${secs}`;
+// ★★ keeps the original key, so records set before difficulty tiers existed count as ★★ records.
+const recKey = (topic, secs, tier) => (tier === 2 ? `${topic}-${secs}` : `${topic}-${secs}-t${tier}`);
 const speedRecs = p => (p.math.speed ||= {});
 
-let choice = { topic: 'mix', secs: 60 };
+let choice = { topic: 'mix', secs: 60, tier: 2 };
 
 // ---------------- Picker ----------------
 
@@ -49,28 +51,32 @@ export function viewSpeedPicker() {
       }, h('span', { class: 'topic-emoji' }, n ? t.emoji : '🔒'), h('span', {}, t.title));
     }));
     const timerRow = h('div', { class: 'timer-row' }, TIMERS.map(t => {
-      const best = recs[recKey(choice.topic, t.secs)]?.best;
+      const best = recs[recKey(choice.topic, t.secs, choice.tier)]?.best;
       return h('button', { class: `timer-card ${choice.secs === t.secs ? 'on' : ''}`, onclick: () => { choice.secs = t.secs; sfx.click(); draw(); } },
         h('span', { class: 'timer-emoji' }, t.emoji), h('b', {}, t.name), h('small', {}, `${t.secs / 60} min`),
         h('small', { class: 'timer-best' }, best ? `Best: ${best}` : 'No record yet'));
     }));
+    const tierRow = h('div', { class: 'tier-pick' }, DIFFICULTY.map(d => h('button', {
+      class: choice.tier === d.tier ? 'on' : '', onclick: () => { choice.tier = d.tier; sfx.click(); draw(); },
+    }, h('span', { class: 'tier-stars' }, starText(d.tier)), h('b', {}, TIER_NAMES[d.tier - 1]), h('small', {}, d.blurb))));
     const t = TIMERS.find(x => x.secs === choice.secs);
     main.replaceChildren(
       h('div', { class: 'quest-head' }, h('div', {}, h('h2', {}, 'Race the clock! ⏱️'),
         h('p', { class: 'muted' }, 'Quick answers earn bonus points. Every 5 in a row raises your multiplier, up to ×4.'))),
       h('section', { class: 'unit' }, h('h3', { class: 'unit-title' }, '1. Pick a topic'), topicGrid),
-      h('section', { class: 'unit' }, h('h3', { class: 'unit-title' }, '2. Pick your timer'), timerRow),
-      leaderboard(choice.topic, choice.secs),
-      h('div', { class: 'row center' }, h('button', { class: 'btn big', onclick: () => go(`/math/speed/${choice.topic}/${choice.secs}`) }, `▶ Start ${t.name}`)));
+      h('section', { class: 'unit' }, h('h3', { class: 'unit-title' }, '2. Pick the difficulty'), tierRow),
+      h('section', { class: 'unit' }, h('h3', { class: 'unit-title' }, '3. Pick your timer'), timerRow),
+      leaderboard(choice.topic, choice.secs, choice.tier),
+      h('div', { class: 'row center' }, h('button', { class: 'btn big', onclick: () => go(`/math/speed/${choice.topic}/${choice.secs}/${choice.tier}`) }, `▶ Start ${t.name} ${starText(choice.tier)}`)));
   };
   draw();
 }
 
-function leaderboard(topic, secs, highlightId) {
-  const key = recKey(topic, secs);
+function leaderboard(topic, secs, tier, highlightId) {
+  const key = recKey(topic, secs, tier);
   const rows = getState().profiles.map(pp => ({ pp, best: pp.math.speed?.[key]?.best || 0 })).filter(r => r.best > 0).sort((a, b) => b.best - a.best);
   const t = TIMERS.find(x => x.secs === secs);
-  const title = `${topics().find(x => x.id === topic)?.title} · ${t.name}`;
+  const title = `${topics().find(x => x.id === topic)?.title} · ${starText(tier)} · ${t.name}`;
   return h('section', { class: 'card leaderboard' },
     h('h3', {}, `🏆 Family leaderboard`, h('small', { class: 'muted' }, ` ${title}`)),
     rows.length
@@ -82,16 +88,17 @@ function leaderboard(topic, secs, highlightId) {
 
 // ---------------- Play ----------------
 
-export function viewSpeedPlay({ topic, secs }) {
+export function viewSpeedPlay({ topic, secs, tier = '2' }) {
   const p = profile();
   secs = Number(secs);
+  tier = Number(tier);
   const timer = TIMERS.find(t => t.secs === secs);
   const pool = openSkills(p, topic);
-  if (!timer || !pool.length) {
+  if (!timer || !pool.length || ![1, 2, 3].includes(tier)) {
     location.hash = '/math/speed';
     return;
   }
-  choice = { topic, secs };
+  choice = { topic, secs, tier };
 
   let alive = true, ended = false, timerId = 0, onKey = null;
   let score = 0, correct = 0, answered = 0, streak = 0, bestStreak = 0, endAt = 0;
@@ -101,7 +108,7 @@ export function viewSpeedPlay({ topic, secs }) {
   const multEl = h('span', { class: 'sp-mult' }, '×1');
   const fill = h('div', { class: 'progress-fill sp-fill' });
   const stage = h('div', { class: 'stage' });
-  screen({ title: `${timer.emoji} ${timer.name}`, back: '#/math/speed', cls: 'session-screen speed-screen' },
+  screen({ title: `${timer.emoji} ${timer.name} ${starText(tier)}`, back: '#/math/speed', cls: 'session-screen speed-screen' },
     h('div', { class: 'speed-hud' },
       h('div', { class: 'sp-box' }, h('small', {}, 'Time'), timeEl),
       h('div', { class: 'progress sp-progress' }, fill),
@@ -158,9 +165,10 @@ export function viewSpeedPlay({ topic, secs }) {
   function nextQuestion() {
     if (!alive || ended) return;
     const skill = pick(pool);
-    const pr = skill.gen(Math.random);
+    const pr = genAt(skill, tier);
     const shownAt = performance.now();
-    const card = h('div', { class: 'q-card card speed-card' }, h('div', { class: 'q-tag' }, `${skill.emoji} ${skill.title}`));
+    const card = h('div', { class: 'q-card card speed-card' }, h('div', { class: 'q-tag' }, `${skill.emoji} ${skill.title}`,
+      h('span', { class: 'tier-chip' }, starText(tier))));
     const fb = h('div', { class: 'feedback' });
     let done = false;
     const qn = buildQuestion(card, pr, { compact: true, onSubmit: submit });
@@ -183,7 +191,7 @@ export function viewSpeedPlay({ topic, secs }) {
         correct++;
         streak++;
         bestStreak = Math.max(bestStreak, streak);
-        const { points, quick } = pointsFor({ tier: tierOf(skill), seconds: (performance.now() - shownAt) / 1000, kind: pr.kind, streak });
+        const { points, quick } = pointsFor({ tier, seconds: (performance.now() - shownAt) / 1000, kind: pr.kind, streak });
         score += points;
         bumpScore();
         sfx.correct();
@@ -209,7 +217,7 @@ export function viewSpeedPlay({ topic, secs }) {
     clearInterval(timerId);
     onKey = null;
     const recs = speedRecs(p);
-    const key = recKey(topic, secs);
+    const key = recKey(topic, secs, tier);
     const prev = recs[key] || { best: 0, bestCorrect: 0, plays: 0 };
     const isRecord = score > prev.best;
     recs[key] = { best: Math.max(prev.best, score), bestCorrect: Math.max(prev.bestCorrect, correct), plays: prev.plays + 1 };
@@ -236,9 +244,9 @@ export function viewSpeedPlay({ topic, secs }) {
         h('div', { class: 'reward' }, h('b', {}, `+${xp + res.bonusXp}`), h('span', {}, '⚡ XP'))),
       res.unlocked.length ? h('div', { class: 'unlocked' }, h('h3', {}, 'New achievements!'),
         res.unlocked.map(a => h('div', { class: 'ach-mini' }, h('span', {}, a.emoji), h('b', {}, a.title)))) : null,
-      leaderboard(topic, secs, p.id),
+      leaderboard(topic, secs, tier, p.id),
       h('div', { class: 'row center' },
-        h('button', { class: 'btn', onclick: () => go(`/math/speed/${topic}/${secs}`) }, '🔁 Play again'),
+        h('button', { class: 'btn', onclick: () => go(`/math/speed/${topic}/${secs}/${tier}`) }, '🔁 Play again'),
         h('a', { class: 'btn alt', href: '#/math/speed' }, 'Change challenge'))));
     stage.querySelector('.btn')?.focus();
   }

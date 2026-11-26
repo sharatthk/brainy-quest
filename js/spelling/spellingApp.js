@@ -1,10 +1,10 @@
 // Spelling Bee: spaced-repetition practice, Bee Challenge (3 lives), word hive, list import.
 import { h, modal, toast } from '../ui.js';
-import { screen, sessionFrame, resultsView, cheer, praise } from '../views/common.js';
+import { screen, sessionFrame, resultsView, cheer, praise, stars, starText, TIER_NAMES } from '../views/common.js';
 import { profile, save, getState } from '../store.js';
 import { BUILTIN_LISTS } from './words.js';
-import { matchesWord, diffSpelling, parseWordList, blankWord, normalizeSpelling } from './logic.js';
-import { newCard, grade, isDue, cardStatus } from '../shared/mastery.js';
+import { matchesWord, diffSpelling, parseWordList, blankWord, normalizeSpelling, splitTiers, challengeGoal } from './logic.js';
+import { newCard, grade, isDue, cardStatus, currentTier } from '../shared/mastery.js';
 import { award, recordAnswer, finishSession } from '../shared/rewards.js';
 import { sfx } from '../shared/sound.js';
 import { speak, speechSupported, stopSpeaking } from '../shared/speech.js';
@@ -19,6 +19,22 @@ export const allLists = () => [...BUILTIN_LISTS, ...getState().lists];
 const listById = id => allLists().find(l => l.id === id);
 const keyOf = w => normalizeSpelling(w);
 const cardOf = w => profile().spelling.cards[keyOf(w)];
+
+// ---------- Star tiers: every list splits into easy, medium and hard words ----------
+const tierCache = new WeakMap();
+const tiersOf = list => {
+  if (!tierCache.has(list)) tierCache.set(list, splitTiers(list.words));
+  return tierCache.get(list);
+};
+const listStars = (p, id) => (p.spelling.stars ||= {})[id] || 0;
+const topTier = (p, id) => (p.settings.unlockAll ? 3 : currentTier(listStars(p, id)));
+// The tier from the URL if it is open and has words, else the one the player is working on.
+function tierFor(list, param) {
+  const p = profile(), top = topTier(p, list.id), want = Number(param) || currentTier(listStars(p, list.id));
+  const t = Math.min(top, Math.max(1, want));
+  return tiersOf(list)[t - 1].length ? t : null;
+}
+const picked = {}; // tier the player tapped on each list card during this visit
 
 function listStats(list) {
   const now = Date.now();
@@ -73,16 +89,39 @@ export function viewSpellingHome() {
     if (!groups.has(g)) groups.set(g, h('div', { class: 'list-grid' }));
     const s = listStats(list);
     const total = list.words.length || 1;
+    const got = listStars(p, list.id), top = topTier(p, list.id), tiers = tiersOf(list);
+    // Default to the tier being worked on, so earning a star moves the card on to the next tier.
+    let tier = Math.min(top, picked[list.id] || currentTier(got));
+    if (!tiers[tier - 1].length) tier = 1;
+    const actions = h('div', { class: 'list-actions' });
+    const drawActions = () => {
+      const t = tier, now = Date.now();
+      const due = tiers[t - 1].filter(w => isDue(cardOf(w.w), now)).length;
+      actions.replaceChildren(
+        h('a', { class: 'btn', href: `#/spelling/practice/${list.id}/${t}` }, due ? `📚 Practice (${due} due)` : '📚 Practice'),
+        h('a', { class: 'btn alt', href: `#/spelling/challenge/${list.id}/${t}` }, '🎤 Bee Challenge'));
+    };
+    const pickRow = h('div', { class: 'tier-pick small-pick', role: 'group', 'aria-label': 'Word difficulty' }, tiers.map((words, k) => {
+      const t = k + 1, can = t <= top && words.length > 0;
+      const b = h('button', { class: t === tier ? 'on' : '', disabled: can ? null : true, title: can ? '' : `Pass the ${starText(t - 1)} Bee Challenge first`,
+        onclick: () => {
+          tier = picked[list.id] = t;
+          pickRow.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+          sfx.click();
+          drawActions();
+        } },
+      h('span', { class: 'tier-stars' }, got >= t ? `${starText(t)} ✅` : can ? starText(t) : `🔒 ${starText(t)}`),
+      h('small', {}, TIER_NAMES[k]), h('small', {}, `${words.length} words`));
+      return b;
+    }));
+    drawActions();
     groups.get(g).append(h('div', { class: 'list-card card' },
-      h('div', { class: 'list-head' }, h('span', { class: 'list-emoji' }, list.emoji || '📝'), h('div', {}, h('h3', {}, list.name), h('p', { class: 'muted small' }, `${list.words.length} words`))),
+      h('div', { class: 'list-head' }, h('span', { class: 'list-emoji' }, list.emoji || '📝'), h('div', {}, h('h3', {}, list.name), h('p', { class: 'muted small' }, `${list.words.length} words · `, h('a', { class: 'words-link', href: `#/spelling/words/${list.id}` }, '🍯 See all'))), stars(got)),
       h('div', { class: 'meter', title: `${s.mastered} mastered, ${s.learning} learning, ${s.new} new` },
         h('span', { class: 'm-mastered', style: { width: `${(s.mastered / total) * 100}%` } }),
         h('span', { class: 'm-learning', style: { width: `${(s.learning / total) * 100}%` } })),
       h('p', { class: 'small legend' }, h('span', { class: 'dot mastered' }), `${s.mastered} mastered `, h('span', { class: 'dot learning' }), `${s.learning} learning `, h('span', { class: 'dot new' }), `${s.new} new`),
-      h('div', { class: 'row' },
-        h('a', { class: 'btn', href: `#/spelling/practice/${list.id}` }, s.due ? `📚 Practice (${s.due} due)` : '📚 Practice'),
-        h('a', { class: 'btn alt', href: `#/spelling/challenge/${list.id}` }, '🎤 Bee Challenge'),
-        h('a', { class: 'btn ghost', href: `#/spelling/words/${list.id}` }, '🍯 Words')),
+      pickRow, actions,
       list.builtin ? null : h('button', { class: 'link-btn danger', onclick: () => {
         if (!confirm(`Delete the list "${list.name}"? Progress on the words is kept.`)) return;
         getState().lists = getState().lists.filter(l => l.id !== list.id);
@@ -169,25 +208,27 @@ const spellOut = w => speak(`${w}. ${[...w].filter(ch => ch !== ' ').join(', ')}
 
 // ---------- Practice ----------
 
-export function viewPractice({ list: listId }) {
+export function viewPractice({ list: listId, tier: tierParam }) {
   const list = listById(listId);
-  if (!list) {
+  const tier = list && tierFor(list, tierParam);
+  if (!tier) {
     location.hash = '/spelling';
     return;
   }
+  const words = tiersOf(list)[tier - 1];
   const now = Date.now();
-  const due = list.words.filter(w => isDue(cardOf(w.w), now)).sort((a, b) => cardOf(a.w).due - cardOf(b.w).due).slice(0, SESSION);
+  const due = words.filter(w => isDue(cardOf(w.w), now)).sort((a, b) => cardOf(a.w).due - cardOf(b.w).due).slice(0, SESSION);
   // New words come from the front of the list (it is ordered by the publisher), mixed within a small window.
-  const fresh = shuffle(list.words.filter(w => cardStatus(cardOf(w.w)) === 'new').slice(0, 25)).slice(0, Math.max(3, Math.min(MAX_NEW, SESSION - due.length)));
+  const fresh = shuffle(words.filter(w => cardStatus(cardOf(w.w)) === 'new').slice(0, 25)).slice(0, Math.max(3, Math.min(MAX_NEW, SESSION - due.length)));
   let items = [...due, ...fresh].slice(0, SESSION);
   let extraNote = '';
   if (!items.length) {
-    items = shuffle(list.words).slice(0, SESSION);
+    items = shuffle(words).slice(0, SESSION);
     extraNote = 'All caught up! Here is a bonus round of review words.';
   }
   items = shuffle(items).map(w => ({ word: w, retry: false }));
 
-  const f = sessionFrame({ title: list.name, back: '#/spelling' });
+  const f = sessionFrame({ title: `${list.name} ${starText(tier)}`, back: '#/spelling' });
   let i = 0, correct = 0, firstTry = 0, combo = 0, coins = 0, xp = 0;
   const firstCount = items.length;
   if (extraNote) toast(extraNote, '🎉');
@@ -269,23 +310,28 @@ export function viewPractice({ list: listId }) {
 
 // ---------- Bee Challenge ----------
 
-export function viewChallenge({ list: listId }) {
+export function viewChallenge({ list: listId, tier: tierParam }) {
   const list = listById(listId);
-  if (!list) {
+  const tier = list && tierFor(list, tierParam);
+  if (!tier) {
     location.hash = '/spelling';
     return;
   }
-  const f = sessionFrame({ title: `Bee Challenge: ${list.name}`, back: '#/spelling' });
-  const pool = shuffle(list.words);
-  let lives = 3, streak = 0, idx = 0, coins = 0, xp = 0, answered = 0;
+  const f = sessionFrame({ title: `Bee Challenge ${starText(tier)}: ${list.name}`, back: '#/spelling' });
+  const pool = shuffle(tiersOf(list)[tier - 1]);
+  const goal = challengeGoal(pool.length);
+  const starsBefore = listStars(profile(), list.id);
+  let lives = 3, streak = 0, idx = 0, coins = 0, xp = 0, answered = 0, right = 0, earned = false;
   const livesEl = h('div', { class: 'lives' });
-  const drawLives = () => livesEl.replaceChildren(...[0, 1, 2].map(k => h('span', { class: k < lives ? '' : 'lost' }, '❤️')), h('b', {}, ` Streak: ${streak}`));
+  const drawLives = () => livesEl.replaceChildren(...[0, 1, 2].map(k => h('span', { class: k < lives ? '' : 'lost' }, '❤️')),
+    h('b', {}, earned ? ` ${starText(tier)} earned! Streak: ${streak}` : ` ${right}/${goal} for ${starText(tier)} · Streak: ${streak}`));
 
   function next() {
     if (lives <= 0 || idx >= pool.length) return finish();
     const word = pool[idx++];
     drawLives();
-    f.setProgress(streak % 10, 10);
+    if (earned) f.setProgress(streak % 10, 10);
+    else f.setProgress(right, goal);
     let advanced = false;
     const go = () => {
       if (advanced) return;
@@ -301,6 +347,14 @@ export function viewChallenge({ list: listId }) {
         answered++;
         if (ok) {
           streak++;
+          right++;
+          if (!earned && right >= goal) {
+            earned = true;
+            const st = (p.spelling.stars ||= {});
+            st[list.id] = Math.max(st[list.id] || 0, tier);
+            sfx.levelUp();
+            toast(`${starText(tier)} earned! Keep going for a big streak.`, '🐝', 2400);
+          }
           const gain = 1 + (streak % 5 === 0 ? 3 : 0);
           coins += gain;
           xp += 3;
@@ -331,7 +385,12 @@ export function viewChallenge({ list: listId }) {
     const res = finishSession({ subject: 'spelling', correct: streak, total: answered });
     resultsView(f.stage, {
       correct: answered - (3 - Math.max(lives, 0)), total: answered, coins: coins + res.bonusCoins, xp: xp + res.bonusXp, perfect: false, unlocked: res.unlocked,
-      extra: [h('p', { class: 'big-msg' }, `Final streak: ${streak} 🐝 · Best ever: ${p.spelling.bestChallenge} 🏆`)],
+      extra: [
+        earned
+          ? h('div', { class: 'star-up' }, h('p', {}, listStars(p, list.id) > starsBefore ? `${starText(tier)} earned!` : `You passed ${starText(tier)} again!`), stars(listStars(p, list.id)),
+            tier < 3 && tiersOf(list)[tier].length ? h('a', { class: 'btn alt', href: `#/spelling/challenge/${list.id}/${tier + 1}` }, `Try ${starText(tier + 1)} ${TIER_NAMES[tier]} words ›`) : null)
+          : h('div', { class: 'star-up miss' }, h('p', {}, `Spell ${goal} words right before you run out of lives to earn ${starText(tier)}. You got ${right}.`), stars(listStars(p, list.id))),
+        h('p', { class: 'big-msg' }, `Final streak: ${streak} 🐝 · Best ever: ${p.spelling.bestChallenge} 🏆`)],
       again: () => rerender(), backHref: '#/spelling', backLabel: 'Word lists',
     });
   }

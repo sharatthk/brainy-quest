@@ -25,6 +25,11 @@ export function toast(text, emoji = '⭐', ms = 2600) {
   const box = document.getElementById('toasts');
   const t = h('div', { class: 'toast' }, h('span', { class: 'toast-emoji' }, emoji), h('span', {}, text));
   box.append(t);
+  // Show at most 2 at once so a burst (e.g. several achievements) never buries the screen.
+  [...box.querySelectorAll('.toast:not(.out)')].slice(0, -2).forEach(old => {
+    old.classList.add('out');
+    setTimeout(() => old.remove(), 400);
+  });
   setTimeout(() => {
     t.classList.add('out');
     setTimeout(() => t.remove(), 400);

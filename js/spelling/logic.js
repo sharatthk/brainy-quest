@@ -86,3 +86,28 @@ export function blankWord(text, word) {
   const esc = stem.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return text.replace(new RegExp(`\\b${esc}\\w*`, 'gi'), '_____');
 }
+
+// ---------- Star tiers ----------
+
+// Patterns that make a word harder to spell than its length suggests.
+const TRICKY = [
+  /ough|augh|eigh/, /ph|gh/, /^(kn|wr|gn|ps|pn|rh)|mb$|mn$/, /ei|ie/, /sc[eiy]/, /([b-df-hj-np-tv-z])\1/,
+  /(tion|sion|cian|ous|eous|ious|ance|ence|ible|able|ise|ize)$/, /[yz]|x|qu/, /[^a-z]/,
+];
+
+// Spelling difficulty: letters plus 1.5 per tricky pattern. Pure, so the split is the same on every device.
+export function wordDifficulty(w) {
+  const s = normalizeSpelling(w);
+  const letters = [...s].filter(ch => /\p{L}/u.test(ch)).length;
+  return letters + 1.5 * TRICKY.filter(re => re.test(s)).length;
+}
+
+// Split a list into easy, medium and hard thirds (by difficulty, ties keep list order).
+export function splitTiers(words) {
+  const sorted = words.map((w, i) => ({ w, i, d: wordDifficulty(w.w) })).sort((a, b) => a.d - b.d || a.i - b.i).map(x => x.w);
+  const a = Math.round(sorted.length / 3), b = Math.round((2 * sorted.length) / 3);
+  return [sorted.slice(0, a), sorted.slice(a, b), sorted.slice(b)];
+}
+
+// Bee Challenge goal for a tier: 10 right, or fewer for a tiny tier (3 lives allow 2 misses).
+export const challengeGoal = n => Math.max(1, Math.min(10, n - 2));

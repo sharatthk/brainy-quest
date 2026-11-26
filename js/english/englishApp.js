@@ -1,18 +1,18 @@
 // Word Wizard: English lessons, quizzes and mistake review.
 import { h } from '../ui.js';
-import { screen, stars, sessionFrame, resultsView, cheer, praise } from '../views/common.js';
+import { screen, stars, sessionFrame, resultsView, cheer, praise, tierList, starText } from '../views/common.js';
 import { profile, save } from '../store.js';
 import { ENGLISH_SECTIONS, ENGLISH_UNITS, unitById, cleanWord, normalizeText } from './content.js';
-import { newCard, grade, isDue } from '../shared/mastery.js';
+import { newCard, grade, isDue, currentTier } from '../shared/mastery.js';
+import { ENGLISH_TIERS, quizItems, needFor, passedQuiz } from './tiers.js';
 import { award, recordAnswer, finishSession } from '../shared/rewards.js';
 import { sfx } from '../shared/sound.js';
 import { speak, speechSupported, stopSpeaking } from '../shared/speech.js';
 import { shuffle } from '../shared/util.js';
 import { render as rerender } from '../router.js';
 
-const QUIZ_LEN = 8;
 const unitRec = id => (profile().english.units[id] ||= { stars: 0, best: 0, attempts: 0, lessonSeen: false });
-const starsForScore = pct => (pct >= 1 ? 3 : pct >= 0.8 ? 2 : pct >= 0.6 ? 1 : 0);
+const topTier = (p, id) => (p.settings.unlockAll ? 3 : currentTier(p.english.units[id]?.stars));
 
 function dueReviews(p) {
   const now = Date.now();
@@ -33,7 +33,7 @@ export function viewEnglishHome() {
   const nextUp = ENGLISH_UNITS.find(u => !(p.english.units[u.id]?.stars >= 2));
   const main = screen({ title: 'Word Wizard', back: '#/' });
   main.append(
-    h('div', { class: 'quest-head' }, h('div', {}, h('h2', {}, 'Learn, then quiz yourself'), h('p', { class: 'muted' }, `${passed} of ${ENGLISH_UNITS.length} units passed. Get 100% for 3 ★.`))),
+    h('div', { class: 'quest-head' }, h('div', {}, h('h2', {}, 'Learn, then quiz yourself'), h('p', { class: 'muted' }, `${passed} of ${ENGLISH_UNITS.length} units passed. Each unit has ★ Warm-up, ★★ Quiz and ★★★ Expert.`))),
     h('div', { class: 'quick-row' },
       nextUp ? h('a', { class: 'quick mix', href: `#/english/unit/${nextUp.id}` }, h('span', { class: 'quick-emoji' }, nextUp.emoji), h('span', {}, h('b', {}, 'Next up'), h('small', {}, nextUp.title))) : null,
       h('a', { class: `quick gym ${reviews.length ? '' : 'dim'}`, href: reviews.length ? '#/english/review' : null, 'aria-disabled': reviews.length ? null : 'true' },
@@ -60,31 +60,42 @@ export function viewLesson({ id }) {
   const main = screen({ title: u.title, back: '#/english' });
   const body = h('div', { class: 'lesson card' });
   main.append(body);
+  const last = u.lessons.length - 1;
   const show = () => {
     const l = u.lessons[i];
     const content = h('div', { class: 'lesson-body', html: l.body });
+    const p = profile(), r = p.english.units[u.id];
+    const startQuiz = tier => {
+      unitRec(u.id).lessonSeen = true;
+      save();
+      stopSpeaking();
+      location.hash = `/english/quiz/${u.id}/${tier}`;
+    };
     body.replaceChildren(
       h('div', { class: 'lesson-top' }, h('span', { class: 'lesson-count' }, `${u.emoji} Card ${i + 1} of ${u.lessons.length}`),
+        r?.lessonSeen && i < last ? h('button', { class: 'link-btn', onclick: () => { i = last; stopSpeaking(); show(); } }, 'Skip to quiz ›') : null,
         speechSupported() ? h('button', { class: 'icon-btn', title: 'Read aloud', 'aria-label': 'Read aloud', onclick: () => speak(`${l.title}. ${content.innerText}`, { rate: 0.95 }) }, '🔊') : null),
       h('h2', {}, l.title), content,
       h('div', { class: 'row spread' },
         h('button', { class: 'btn alt', disabled: i === 0, onclick: () => { i--; stopSpeaking(); show(); } }, '‹ Back'),
-        i < u.lessons.length - 1
-          ? h('button', { class: 'btn', onclick: () => { i++; stopSpeaking(); show(); } }, 'Next ›')
-          : h('a', { class: 'btn big', href: `#/english/quiz/${u.id}`, onclick: () => { unitRec(u.id).lessonSeen = true; save(); } }, '🎯 Start quiz')));
+        i < last ? h('button', { class: 'btn', onclick: () => { i++; stopSpeaking(); show(); } }, 'Next ›') : null),
+      i === last ? h('div', { class: 'stack quiz-pick' }, h('h3', {}, '🎯 Pick your quiz'),
+        tierList({ tiers: ENGLISH_TIERS, got: r?.stars || 0, top: topTier(p, u.id), onPick: startQuiz })) : null);
   };
   show();
   return stopSpeaking;
 }
 
-export function viewQuiz({ id }) {
+export function viewQuiz({ id, tier: tierParam }) {
   const u = unitById(id);
   if (!u) {
     location.hash = '/english';
     return;
   }
-  const order = shuffle(u.questions.map((_, k) => k)).slice(0, QUIZ_LEN);
-  return runQuiz({ title: `Quiz: ${u.title}`, back: `#/english/unit/${u.id}`, items: order.map(k => ({ unit: u, idx: k, key: `${u.id}#${k}` })), unit: u });
+  const p = profile();
+  const tier = Math.min(topTier(p, u.id), Math.max(1, Number(tierParam) || currentTier(p.english.units[u.id]?.stars)));
+  const items = quizItems(u, tier).map(it => ({ ...it, unit: u, key: `${u.id}#${it.idx}` }));
+  return runQuiz({ title: `${ENGLISH_TIERS[tier - 1].name} ${starText(tier)}: ${u.title}`, back: `#/english/unit/${u.id}`, items, unit: u, tier });
 }
 
 export function viewReview() {
@@ -96,7 +107,7 @@ export function viewReview() {
   return runQuiz({ title: 'Fix my mistakes', back: '#/english', items, review: true });
 }
 
-function runQuiz({ title, back, items, unit, review = false }) {
+function runQuiz({ title, back, items, unit, tier, review = false }) {
   const f = sessionFrame({ title, back });
   let i = 0, correct = 0, combo = 0, coins = 0, xp = 0;
   let onKey = null;
@@ -138,8 +149,9 @@ function runQuiz({ title, back, items, unit, review = false }) {
     };
 
     if (q.t === 'mc') {
-      const box = h('div', { class: `choices ${q.c.length <= 3 ? 'few' : ''} ${q.c.some(c => c.length > 22) ? 'wide' : ''}` });
-      shuffle(q.c).forEach((c, k) => {
+      const opts = item.choices || shuffle(q.c);
+      const box = h('div', { class: `choices ${opts.length <= 3 ? 'few' : ''} ${opts.some(c => c.length > 22) ? 'wide' : ''}` });
+      opts.forEach((c, k) => {
         const b = h('button', { class: 'choice', 'data-key': String(k + 1) }, c);
         b.addEventListener('click', () => {
           if (answered) return;
@@ -177,7 +189,7 @@ function runQuiz({ title, back, items, unit, review = false }) {
         check.remove();
         done(ok, sentence);
       } }, 'Check ✓');
-      card.append(h('p', { class: 'q-hint' }, 'Tap the words, then press Check.'), sentence, h('div', { class: 'row center' }, check));
+      card.append(h('p', { class: 'q-hint' }, item.hint || 'Tap the words, then press Check.'), sentence, h('div', { class: 'row center' }, check));
     } else {
       const parts = q.s.split('___');
       const inp = h('input', { class: 'answer-input text', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', 'aria-label': 'your answer' });
@@ -191,7 +203,7 @@ function runQuiz({ title, back, items, unit, review = false }) {
       };
       inp.addEventListener('keydown', e => e.key === 'Enter' && check());
       const checkBtn = h('button', { class: 'btn big', onclick: check }, 'Check ✓');
-      card.append(h('p', { class: 'fill-sentence' }, parts[0], inp, parts[1] || ''), h('div', { class: 'row center' }, checkBtn));
+      card.append(item.hint ? h('p', { class: 'q-hint' }, `💡 ${item.hint}`) : null, h('p', { class: 'fill-sentence' }, parts[0], inp, parts[1] || ''), h('div', { class: 'row center' }, checkBtn));
       inp.focus();
     }
     card.append(fb);
@@ -228,12 +240,19 @@ function runQuiz({ title, back, items, unit, review = false }) {
     if (unit) {
       const r = unitRec(unit.id);
       const before = r.stars;
-      const pct = correct / items.length;
+      const total = items.length;
       r.attempts++;
-      r.best = Math.max(r.best, pct);
-      r.stars = Math.max(r.stars, starsForScore(pct));
+      r.best = Math.max(r.best, correct / total);
+      if (passedQuiz(tier, correct, total)) {
+        r.stars = Math.max(r.stars, tier);
+        const fresh = r.stars > before;
+        if (fresh) sfx.levelUp();
+        extra.push(h('div', { class: 'star-up' }, h('p', {}, fresh ? `${starText(tier)} earned!` : `You passed ${starText(tier)} again!`), stars(r.stars),
+          tier < 3 ? h('a', { class: 'btn alt', href: `#/english/quiz/${unit.id}/${tier + 1}` }, `Try ${starText(tier + 1)} ${ENGLISH_TIERS[tier].name} ›`) : null));
+      } else {
+        extra.push(h('div', { class: 'star-up miss' }, h('p', {}, `Get ${needFor(tier, total)} of ${total} right to earn ${starText(tier)}. You got ${correct}.`), stars(r.stars)));
+      }
       save();
-      if (r.stars > before) extra.push(h('div', { class: 'star-up' }, h('p', {}, 'New stars!'), stars(r.stars)));
     }
     const res = finishSession({ subject: 'english', correct, total: items.length });
     resultsView(f.stage, {

@@ -1,21 +1,16 @@
-// Skill mastery (stars) and spaced repetition (Leitner boxes). Pure - no DOM.
+// Star tiers, practice records and spaced repetition (Leitner boxes). Pure - no DOM.
+
+// ---- Star tiers ----
+// Every stage (math skill, English unit, spelling list) has three tiers: ★ easy, ★★ medium, ★★★ hard.
+// A stage's stars = the highest tier passed. Passing a tier opens the next one; stars are never taken away.
+export const PASS = 0.8; // share of a tier session to get right (first try) to pass it
+export const passed = (correct, total) => total > 0 && correct / total >= PASS;
+export const needToPass = total => Math.ceil(PASS * total - 1e-9);
+// Tier the player is working on: the first one not passed yet (3 once everything is passed).
+export const currentTier = stars => Math.min(3, (stars || 0) + 1);
 
 export function emptyRec() {
   return { attempts: 0, correct: 0, recent: [], stars: 0, last: 0, errors: {} };
-}
-
-// Stars from recent answers (1 = right, 0 = wrong). Stars are never taken away once earned.
-export function starsFor(recent) {
-  const n = recent.length;
-  if (n < 5) return 0;
-  const acc = k => {
-    const s = recent.slice(-k);
-    return s.reduce((a, b) => a + b, 0) / s.length;
-  };
-  if (n >= 20 && acc(20) >= 0.95) return 3;
-  if (n >= 10 && acc(10) >= 0.9) return 2;
-  if (acc(Math.min(n, 10)) >= 0.7) return 1;
-  return 0;
 }
 
 export function record(rec, ok, tag) {
@@ -24,7 +19,6 @@ export function record(rec, ok, tag) {
   rec.recent = [...rec.recent, ok ? 1 : 0].slice(-20);
   if (!ok && tag) rec.errors[tag] = (rec.errors[tag] || 0) + 1;
   rec.last = Date.now();
-  rec.stars = Math.max(rec.stars, starsFor(rec.recent));
   return rec;
 }
 

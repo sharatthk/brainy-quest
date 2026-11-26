@@ -28,6 +28,21 @@ export function stars(n, max = 3) {
     Array.from({ length: max }, (_, i) => h('span', { class: i < n ? 'star on' : 'star' }, '★')));
 }
 
+export const TIER_NAMES = ['Easy', 'Medium', 'Hard'];
+export const starText = tier => '★'.repeat(tier);
+
+// The three star tiers of a stage. tiers: [{ name, label }] (name defaults to Easy/Medium/Hard);
+// got: stars earned; top: highest tier open now; onPick(tier) starts one.
+export function tierList({ tiers, got, top, onPick }) {
+  return h('div', { class: 'tier-list' }, tiers.map((t, k) => {
+    const tier = k + 1, done = got >= tier, can = tier <= top;
+    return h('button', { class: `tier-row ${done ? 'done' : ''} ${can ? '' : 'locked'}`, disabled: can ? null : true, onclick: () => onPick(tier) },
+      h('span', { class: 'tier-stars' }, starText(tier)),
+      h('span', { class: 'tier-text' }, h('b', {}, t.name || TIER_NAMES[k]), h('small', {}, t.label)),
+      h('span', { class: 'tier-state', 'aria-label': done ? 'passed' : can ? 'open' : 'locked' }, done ? '✅' : can ? '▶' : '🔒'));
+  }));
+}
+
 export function sessionFrame({ title, back }) {
   const fill = h('div', { class: 'progress-fill' });
   const combo = h('div', { class: 'combo' });

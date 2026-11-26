@@ -21,7 +21,7 @@ function defaults() {
     },
     math: { skills: {}, speed: {} },
     english: { units: {}, review: {} },
-    spelling: { cards: {}, bestChallenge: 0 },
+    spelling: { cards: {}, bestChallenge: 0, stars: {} },
     settings: { unlockAll: false, voiceURI: '', rate: 0.85, sound: true, dailyGoal: 60, scratch: false },
   };
 }

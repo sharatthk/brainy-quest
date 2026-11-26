@@ -2,13 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SKILLS, UNITS, skillById, checkAnswer, diagnose, guidedPlan, countCarries, countBorrows, borrowsAcrossZero, makeAdd, makeSub, makeMul, addSolution, subSolution, dls } from '../js/math/skills.js';
 import { seeded } from '../js/shared/util.js';
+import { TIERS, genAt } from '../js/math/tiers.js';
+import { currentTier, passed, needToPass } from '../js/shared/mastery.js';
 
 const rng = seeded(42);
 
-test('every skill generates 300 valid problems', () => {
+test('every skill and every star tier generates valid problems', () => {
   for (const s of SKILLS) {
-    for (let i = 0; i < 300; i++) {
-      const p = s.gen(rng);
+    const gens = [s.gen, ...[1, 2, 3].map(t => r => genAt(s, t, r))];
+    for (let i = 0; i < 600; i++) {
+      const p = gens[i % 4](rng);
       assert.ok(['column', 'input', 'choice', 'division', 'fraction'].includes(p.kind), s.id);
       assert.ok(Array.isArray(p.steps) && p.steps.length > 0, `${s.id} has steps`);
       if (p.kind === 'choice') {
@@ -127,4 +130,41 @@ test('speed challenge scoring', async () => {
   assert.deepEqual(pointsFor({ tier: 3, seconds: 6, kind: 'column', streak: 5 }), { points: 70, quick: true });
   assert.deepEqual(pointsFor({ tier: 2, seconds: 9, kind: 'column', streak: 0 }), { points: 20, quick: false });
   assert.equal(coinsFor(410), 21);
+});
+
+test('star tiers generate exactly the shape each tier promises', () => {
+  const rng = seeded(7);
+  const sample = (id, t, n = 60) => Array.from({ length: n }, () => genAt(skillById(id), t, rng));
+  const carryCols = p => p.carries.map((c, i) => (c ? i - 1 : null)).filter(x => x != null);
+  const expectAdd = { 'add-2d-nc': [0, 0, 0], 'add-2d-c': [1, 1, 2], 'add-3d-nc': [0, 0, 0], 'add-3d-c1': [1, 1, 1], 'add-3d-c2': [2, 2, 3] };
+  for (const [id, carries] of Object.entries(expectAdd)) {
+    carries.forEach((c, k) => sample(id, k + 1).forEach(p => assert.equal(countCarries(p.a, p.b), c, `${id} ★${k + 1}: ${p.a}+${p.b}`)));
+  }
+  assert.ok(sample('add-3d-c1', 1).every(p => carryCols(p).join() === '0'), 'carry from the ones');
+  assert.ok(sample('add-3d-c1', 2).every(p => carryCols(p).join() === '1'), 'carry from the tens');
+  assert.ok(sample('add-3d-c1', 3).every(p => p.answer >= 1000), 'carry into the thousands');
+  assert.ok(sample('add-3d-c2', 1).every(p => p.answer < 1000) && sample('add-3d-c2', 2).every(p => p.answer >= 1000));
+  assert.ok(sample('add-2d-nc', 1).every(p => p.b < 10) && sample('sub-2d-b', 1).every(p => p.b < 10), '★ uses a 1-digit number');
+  assert.ok(sample('add-4d', 3).every(p => countCarries(p.a, p.b) >= 3));
+  [0, 1].forEach(b => assert.ok(sample('sub-2d-nb', 2).concat(sample('sub-2d-b', 2)).some(p => countBorrows(p.a, p.b) === b)));
+  assert.ok(sample('sub-2d-b', 3).every(p => p.a % 10 === 0 && countBorrows(p.a, p.b) === 1), 'borrow from a zero');
+  assert.ok(sample('sub-3d-b2', 3).every(p => countBorrows(p.a, p.b) === 2 && p.answer < 100));
+  for (const t of [1, 2, 3]) assert.ok(sample('sub-3d-bz', t).every(p => borrowsAcrossZero(p.a, p.b)), `across zero ★${t}`);
+  assert.ok(sample('mul-facts', 1).every(p => /\b(2|5|10)\b/.test(p.prompt)), '2s, 5s and 10s');
+  assert.ok(sample('mul-3x1', 3).every(p => Math.floor(p.a / 10) % 10 === 0 && p.b >= 6), 'zero in the middle');
+  assert.ok(sample('div-3x1', 1).every(p => p.r === 0) && sample('div-3x1', 3).every(p => String(p.q).includes('0')));
+  assert.ok(sample('div-3x2', 3).every(p => p.b >= 26));
+  assert.ok(sample('num-place', 3).every(p => /\d{2,3},\d{3}/.test(p.prompt.replace(/<[^>]+>/g, ''))), 'up to 6 digits');
+  assert.ok(sample('word-add-sub', 1).every(p => p.answer < 200) && sample('word-add-sub', 3).every(p => p.answer >= 100));
+  for (const s of SKILLS) assert.equal(TIERS[s.id].length, 3, s.id);
+});
+
+test('star tier rules', () => {
+  assert.equal(currentTier(0), 1);
+  assert.equal(currentTier(2), 3);
+  assert.equal(currentTier(3), 3, 'stays on ★★★ once everything is passed');
+  assert.equal(currentTier(undefined), 1);
+  assert.equal(needToPass(10), 8);
+  assert.equal(needToPass(6), 5);
+  assert.ok(passed(8, 10) && !passed(7, 10) && !passed(0, 0));
 });

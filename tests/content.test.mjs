@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ENGLISH_UNITS, ENGLISH_SECTIONS, cleanWord } from '../js/english/content.js';
 import { BUILTIN_LISTS } from '../js/spelling/words.js';
-import { emptyRec, record, starsFor, newCard, grade, isDue, cardStatus } from '../js/shared/mastery.js';
-import { isCorrectSpelling, diffSpelling, parseWordList, blankWord } from '../js/spelling/logic.js';
+import { emptyRec, record, newCard, grade, isDue, cardStatus } from '../js/shared/mastery.js';
+import { isCorrectSpelling, diffSpelling, parseWordList, blankWord, wordDifficulty, splitTiers, challengeGoal } from '../js/spelling/logic.js';
+import { quizItems, passedQuiz, needFor, ENGLISH_TIERS } from '../js/english/tiers.js';
+import { seeded } from '../js/shared/util.js';
 
 test('english units are well formed', () => {
   const ids = new Set();
@@ -38,17 +40,14 @@ test('starter spelling lists are well formed', () => {
   }
 });
 
-test('stars and spaced repetition', () => {
+test('practice records and spaced repetition', () => {
   const r = emptyRec();
-  for (let i = 0; i < 9; i++) record(r, true);
-  assert.equal(r.stars, 1);
-  record(r, true);
-  assert.equal(r.stars, 2);
-  for (let i = 0; i < 10; i++) record(r, true);
-  assert.equal(r.stars, 3);
-  record(r, false);
-  assert.equal(r.stars, 3, 'stars are kept');
-  assert.equal(starsFor([1, 1, 0, 0, 0]), 0);
+  for (let i = 0; i < 25; i++) record(r, true);
+  record(r, false, 'forgot-carry');
+  assert.equal(r.attempts, 26);
+  assert.equal(r.recent.length, 20);
+  assert.equal(r.errors['forgot-carry'], 1);
+  assert.equal(r.stars, 0, 'accuracy alone never earns stars; passing a star tier does');
 
   const now = Date.now();
   const c = newCard();
@@ -100,4 +99,43 @@ test('alternate spellings are parsed and accepted', async () => {
   assert.deepEqual([w.w, w.alts, w.def], ['practice', ['practise'], 'noun: repeated exercise.']);
   assert.ok(matchesWord('practise', w) && matchesWord('Practice', w) && !matchesWord('practis', w));
   assert.ok(matchesWord('deja vu', { w: 'déjà vu' }));
+});
+
+test('english star tiers', () => {
+  const rng = seeded(3);
+  for (const u of ENGLISH_UNITS) {
+    const warm = quizItems(u, 1, rng), quiz = quizItems(u, 2, rng), expert = quizItems(u, 3, rng);
+    assert.equal(warm.length, Math.min(6, u.questions.length), u.id);
+    assert.equal(quiz.length, Math.min(8, u.questions.length), u.id);
+    assert.equal(expert.length, u.questions.length, 'Expert asks every question');
+    assert.equal(new Set(expert.map(x => x.idx)).size, u.questions.length);
+    for (const it of warm) {
+      const q = u.questions[it.idx];
+      if (q.t === 'mc') {
+        assert.equal(it.choices.length, 2);
+        assert.ok(it.choices.includes(q.a) && new Set(it.choices).size === 2, `${u.id} warm-up choices`);
+      } else assert.ok(it.hint, `${u.id} warm-up hint`);
+    }
+    assert.ok(quiz.every(x => !x.choices && !x.hint) && expert.every(x => !x.choices && !x.hint));
+  }
+  assert.ok(passedQuiz(3, 8, 9) && !passedQuiz(3, 7, 9), 'Expert allows one miss');
+  assert.ok(passedQuiz(2, 7, 8) && !passedQuiz(2, 6, 8));
+  assert.equal(needFor(1, 6), 5);
+  assert.equal(ENGLISH_TIERS.length, 3);
+});
+
+test('spelling star tiers split lists by difficulty', () => {
+  assert.ok(wordDifficulty('cat') < wordDifficulty('caught'));
+  assert.ok(wordDifficulty('knight') > wordDifficulty('nights'), 'silent letters count');
+  for (const list of BUILTIN_LISTS) {
+    const [a, b, c] = splitTiers(list.words);
+    assert.equal(a.length + b.length + c.length, list.words.length, list.id);
+    assert.ok(a.length && b.length && c.length, `${list.id} has words in every tier`);
+    const max = xs => Math.max(...xs.map(w => wordDifficulty(w.w))), min = xs => Math.min(...xs.map(w => wordDifficulty(w.w)));
+    assert.ok(max(a) <= min(b) && max(b) <= min(c), `${list.id} tiers are ordered`);
+  }
+  assert.deepEqual(splitTiers([]), [[], [], []]);
+  assert.equal(challengeGoal(150), 10);
+  assert.equal(challengeGoal(5), 3, 'a tiny tier still leaves room for the 2 misses 3 lives allow');
+  assert.equal(challengeGoal(1), 1);
 });
