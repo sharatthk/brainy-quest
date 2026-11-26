@@ -4,6 +4,7 @@ import { screen } from './common.js';
 import { profile, save } from '../store.js';
 import { ACHIEVEMENTS } from '../shared/achievements.js';
 import { sfx } from '../shared/sound.js';
+import { runAchievements } from '../shared/rewards.js';
 import { confetti } from '../shared/confetti.js';
 import { render as rerender } from '../router.js';
 import { FREE_AVATARS } from './home.js';
@@ -35,6 +36,7 @@ function buy(id, price, apply) {
   sfx.fanfare();
   confetti({ count: 80 });
   toast('Bought it!', '🎉');
+  runAchievements({ announce: true }); // e.g. Shopper
   rerender();
 }
 

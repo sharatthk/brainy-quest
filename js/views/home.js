@@ -1,5 +1,5 @@
 // Hub screen and player profiles.
-import { h } from '../ui.js';
+import { h, onEnter } from '../ui.js';
 import { screen } from './common.js';
 import { profile, getState, createProfile, switchProfile } from '../store.js';
 import { levelProgress, currentStreak, dailyXp } from '../shared/rewards.js';
@@ -32,7 +32,7 @@ export function viewHome() {
       heroBuddy(p),
       h('div', { class: 'hero-info' },
         h('h2', {}, `Hi, ${p.name}!`),
-        h('p', { class: 'muted' }, `Level ${lv.level} · ${currentStreak(p)}-day streak 🔥`),
+        h('p', { class: 'muted' }, `Level ${lv.level} · ${currentStreak(p) ? `${currentStreak(p)}-day streak 🔥` : 'Start a streak today!'}`),
         h('div', { class: 'xpbar', title: `${lv.into} / ${lv.need} XP` }, h('div', { class: 'xpfill', style: { width: `${(lv.into / lv.need) * 100}%` } })),
         h('p', { class: 'small muted' }, `${lv.need - lv.into} XP to level ${lv.level + 1}`)),
       h('div', { class: 'hero-goal' }, ring(today / goal, today >= goal ? '✓' : `${today}`), h('small', {}, today >= goal ? 'Goal done!' : `Daily goal ${goal} XP`)),
@@ -77,7 +77,7 @@ export function viewProfiles() {
     createProfile(name.value.trim(), avatar);
     go('/');
   };
-  name.addEventListener('keydown', e => e.key === 'Enter' && create());
+  onEnter(name, create);
   main.append(h('section', { class: 'card stack new-profile' },
     h('h2', {}, st.profiles.length ? 'Add a new player' : 'Welcome to Brainy Quest! 🎉'),
     st.profiles.length ? null : h('p', { class: 'muted' }, 'Learn math, English and spelling. Earn coins, level up and collect trophies!'),

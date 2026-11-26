@@ -1,5 +1,5 @@
 // Word Wizard: English lessons, quizzes and mistake review.
-import { h } from '../ui.js';
+import { h, onEnter } from '../ui.js';
 import { screen, stars, sessionFrame, resultsView, cheer, praise, tierList, starText } from '../views/common.js';
 import { profile, save } from '../store.js';
 import { ENGLISH_SECTIONS, ENGLISH_UNITS, unitById, cleanWord, normalizeText } from './content.js';
@@ -200,7 +200,7 @@ function runQuiz({ title, back, items, unit, tier, review = false }) {
         checkBtn.remove();
         done(ok, inp);
       };
-      inp.addEventListener('keydown', e => e.key === 'Enter' && check());
+      onEnter(inp, check);
       const checkBtn = h('button', { class: 'btn big', onclick: check }, 'Check ✓');
       card.append(item.hint ? h('p', { class: 'q-hint' }, `💡 ${item.hint}`) : null, h('p', { class: 'fill-sentence' }, parts[0], inp, parts[1] || ''), h('div', { class: 'row center' }, checkBtn));
       inp.focus();

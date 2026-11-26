@@ -1,7 +1,7 @@
 // Renders one math problem's input UI (column, choices, division, fraction or a plain box).
 // Shared by practice sessions and speed challenges.
-import { h } from '../ui.js';
-import { frac } from './skills.js';
+import { h, onEnter } from '../ui.js';
+import { frac, checkAnswer } from './skills.js';
 import { columnWidget } from './column.js';
 
 // Appends the problem to `card`. Calls onSubmit(value, choiceButton) when the kid answers.
@@ -45,7 +45,7 @@ export function buildQuestion(card, pr, { onSubmit, compact = false }) {
     if (pr.visual) card.append(h('div', { class: 'viz-wrap', html: pr.visual }));
     const mk = (label, cls = '') => {
       const i = h('input', { class: `answer-input ${cls}`, inputmode: pr.answerType === 'decimal' ? 'decimal' : 'numeric', autocomplete: 'off', 'aria-label': label });
-      i.addEventListener('keydown', e => e.key === 'Enter' && submit());
+      onEnter(i, () => submit());
       return i;
     };
     let inputs;
@@ -68,6 +68,10 @@ export function buildQuestion(card, pr, { onSubmit, compact = false }) {
     }
     q.focus = () => inputs[0].focus();
     q.lock = () => inputs.forEach(x => (x.disabled = true));
+    q.reveal = () => {
+      const cls = checkAnswer(pr, getValue()) ? 'ok' : 'bad';
+      inputs.forEach(x => x.classList.add(cls));
+    };
   }
   if (pr.kind !== 'choice') {
     q.checkBtn = h('button', { class: 'btn big', onclick: submit }, 'Check ✓');

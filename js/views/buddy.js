@@ -1,5 +1,5 @@
 // Buddy pet views: the face (with stage and gear), the home panel, session reactions and growing up.
-import { h, modal, toast } from '../ui.js';
+import { h, modal, toast, onEnter } from '../ui.js';
 import { profile, save } from '../store.js';
 import { STAGES, ensureBuddy, buddyFood, stageFor, stageProgress, mood, reaction, gearSlot } from '../shared/buddy.js';
 import { dayKey } from '../shared/util.js';
@@ -59,7 +59,7 @@ function renameBuddy(after) {
     sfx.click();
     after?.();
   };
-  input.addEventListener('keydown', e => e.key === 'Enter' && done());
+  onEnter(input, done);
   close = modal(
     buddyFace(profile()),
     h('h2', {}, 'Name your buddy'),

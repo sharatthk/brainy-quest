@@ -264,7 +264,7 @@ export function viewSpeedPlay({ topic, secs, tier = '2' }) {
         h('div', { class: 'reward' }, h('b', {}, `+${coins + res.bonusCoins}`), h('span', {}, '🪙 coins')),
         h('div', { class: 'reward' }, h('b', {}, `+${xp + res.bonusXp}`), h('span', {}, '⚡ XP'))),
       res.unlocked.length ? h('div', { class: 'unlocked' }, h('h3', {}, 'New achievements!'),
-        res.unlocked.map(a => h('div', { class: 'ach-mini' }, h('span', {}, a.emoji), h('b', {}, a.title)))) : null,
+        res.unlocked.map(a => h('div', { class: 'ach-mini' }, h('span', {}, a.emoji), h('b', {}, a.title), h('small', { class: 'muted' }, ` +${a.coins} 🪙`)))) : null,
       chestCard(answered),
       leaderboard(topic, secs, tier, p.id),
       h('div', { class: 'row center' },

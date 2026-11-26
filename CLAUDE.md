@@ -4,7 +4,7 @@ Gamified math, English and spelling PWA for kids (about 6 to 11). Vanilla JS ES 
 
 - Run: `python3 -m http.server 8777` from the repo root, open http://localhost:8777
 - Unit tests: `node --test tests/*.test.mjs`
-- Browser regression suite and how to run it: the `regression-test` skill
+- Browser regression suite (tests/e2e, Python Playwright, phone + desktop): the `regression-test` skill. Run it before every deploy.
 - Adding skills, units, word lists: the `add-content` skill
 - Deploying to GitHub Pages: the `deploy-pages` skill
 

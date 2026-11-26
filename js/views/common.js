@@ -95,7 +95,7 @@ export function resultsView(stage, { correct, total, coins, xp, perfect, unlocke
     ...extra,
     chestCard(total),
     unlocked.length ? h('div', { class: 'unlocked' }, h('h3', {}, 'New achievements!'),
-      unlocked.map(a => h('div', { class: 'ach-mini' }, h('span', {}, a.emoji), h('b', {}, a.title)))) : null,
+      unlocked.map(a => h('div', { class: 'ach-mini' }, h('span', {}, a.emoji), h('b', {}, a.title), h('small', { class: 'muted' }, ` +${a.coins} 🪙`)))) : null,
     h('div', { class: 'row center' },
       again ? h('button', { class: 'btn', onclick: again }, '🔁 Play again') : null,
       h('a', { class: 'btn alt', href: backHref }, backLabel))));

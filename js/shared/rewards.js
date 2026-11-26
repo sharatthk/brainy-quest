@@ -87,16 +87,16 @@ export function finishSession({ subject, correct, total }) {
   return { bonusXp, bonusCoins, perfect, unlocked };
 }
 
-export function runAchievements() {
+// announce: show a toast per achievement (for places without a results screen, like the shop).
+export function runAchievements({ announce = false } = {}) {
   const p = profile();
   const fresh = checkAchievements(p);
   if (!fresh.length) return [];
   for (const a of fresh) p.achievements[a.id] = Date.now();
   save();
-  fresh.forEach((a, i) => setTimeout(() => {
-    toast(`Achievement unlocked: ${a.title}! +${a.coins} 🪙`, a.emoji, 4000);
-    sfx.fanfare();
-  }, 900 * (i + 1)));
+  // A results screen lists new achievements itself, so there it is one fanfare instead of a pile of popups.
+  if (announce) fresh.forEach(a => toast(`Achievement unlocked: ${a.title}! +${a.coins} 🪙`, a.emoji, 4000));
+  setTimeout(() => sfx.fanfare(), 900);
   award({ coins: fresh.reduce((s, a) => s + a.coins, 0) });
   return fresh;
 }

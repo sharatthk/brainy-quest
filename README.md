@@ -35,6 +35,8 @@ To test locally without a real project: run `npx firebase-tools emulators:start 
 node --test tests/*.test.mjs
 ```
 
+Browser regression suite (every flow at phone and desktop size, Python Playwright): see `tests/e2e/README.md`.
+
 ## What's inside
 
 | Area | Highlights |

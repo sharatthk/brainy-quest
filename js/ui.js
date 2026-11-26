@@ -21,6 +21,16 @@ export function h(tag, props = {}, ...children) {
   return el;
 }
 
+// Run fn when Enter is pressed in an input. preventDefault matters: the handler may move focus to a
+// button (e.g. "Got it"), and without it the same keypress would click that button straight away.
+export function onEnter(input, fn) {
+  input.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    fn(e);
+  });
+}
+
 export function toast(text, emoji = '⭐', ms = 2600) {
   const box = document.getElementById('toasts');
   const t = h('div', { class: 'toast' }, h('span', { class: 'toast-emoji' }, emoji), h('span', {}, text));

@@ -1,5 +1,5 @@
 // Grown-ups corner: progress report, trouble spots, settings, backup.
-import { h, toast } from '../ui.js';
+import { h, toast, onEnter } from '../ui.js';
 import { screen, stars } from './common.js';
 import { profile, save, getState, exportData, importData, deleteProfile } from '../store.js';
 import { SKILLS, UNITS } from '../math/skills.js';
@@ -136,7 +136,7 @@ function gate() {
       setTimeout(() => inp.classList.remove('shake'), 400);
     }
   };
-  inp.addEventListener('keydown', e => e.key === 'Enter' && check());
+  onEnter(inp, check);
   main.append(h('section', { class: 'card stack center' }, h('h2', {}, '👪 Grown-ups only'), h('p', {}, `To continue, solve: ${a} × ${b}`), h('div', { class: 'row center' }, inp, h('button', { class: 'btn', onclick: check }, 'Enter'))));
   inp.focus();
 }

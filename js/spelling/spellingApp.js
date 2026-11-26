@@ -1,5 +1,5 @@
 // Spelling Bee: spaced-repetition practice, Bee Challenge (3 lives), word hive, list import.
-import { h, modal, toast } from '../ui.js';
+import { h, modal, toast, onEnter } from '../ui.js';
 import { screen, sessionFrame, resultsView, cheer, praise, stars, starText, TIER_NAMES } from '../views/common.js';
 import { profile, save, getState } from '../store.js';
 import { BUILTIN_LISTS } from './words.js';
@@ -181,7 +181,7 @@ function wordCard(word, { onResult, allowHints = true }) {
     input.classList.add(ok ? 'ok' : 'bad');
     onResult({ ok, hinted: hinted > 0, typed: input.value, fb, card, input });
   };
-  input.addEventListener('keydown', e => e.key === 'Enter' && check());
+  onEnter(input, check);
   const checkBtn = h('button', { class: 'btn big', onclick: check }, 'Check ✓');
 
   card.append(...[
@@ -268,8 +268,7 @@ export function viewPractice({ list: listId, tier: tierParam }) {
           if (!item.retry) items.push({ word: item.word, retry: true });
           const fix = h('input', { class: 'answer-input text spell-input', autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false', placeholder: 'Type it correctly', 'aria-label': 'Type the correct spelling' });
           const msg = h('p', { class: 'muted small' }, 'Type the correct spelling once to lock it into your memory.');
-          fix.addEventListener('keydown', e => {
-            if (e.key !== 'Enter') return;
+          onEnter(fix, () => {
             if (matchesWord(fix.value, item.word)) {
               sfx.click();
               go();

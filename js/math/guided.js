@@ -1,5 +1,5 @@
 // Coach mode: walks the kid through each column, asking about carries and borrows.
-import { h } from '../ui.js';
+import { h, onEnter } from '../ui.js';
 import { guidedPlan } from './skills.js';
 import { columnWidget } from './column.js';
 import { sfx } from '../shared/sound.js';
@@ -73,7 +73,7 @@ export function runGuided(container, p, onDone) {
         inp.select();
       }
     };
-    inp.addEventListener('keydown', e => e.key === 'Enter' && check());
+    onEnter(inp, check);
     bubble.replaceChildren(h('p', { class: 'coach-q' }, s.question), h('div', { class: 'row' }, inp, h('button', { class: 'btn', onclick: check }, 'Check')), msg);
     inp.focus();
   }
