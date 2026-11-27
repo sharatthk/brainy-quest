@@ -648,8 +648,8 @@ def t_speed(f):
     f.goto('/math/speed')
 
 
-def eng_answer(f, right=True, unit=None):
-    o = f.page.evaluate(ORACLE['english'], {'unitId': unit})
+def eng_answer(f, right=True, unit=None, subject='english'):
+    o = f.page.evaluate(ORACLE['english'], {'unitId': unit, 'subject': subject})
     f.check('err' not in o, f'english oracle: {o.get("err")}')
     card = f.page.locator('.stage .q-card').last
     if o['t'] == 'mc':
@@ -667,7 +667,7 @@ def eng_answer(f, right=True, unit=None):
     return o
 
 
-def play_eng(f, unit=None, wrong=(), warmup=False, seen=None, max_q=30):
+def play_eng(f, unit=None, wrong=(), warmup=False, seen=None, max_q=30, subject='english'):
     i = 0
     while not f.done() and i < max_q:
         f.page.wait_for_selector('.stage .q-card, .results')
@@ -675,7 +675,7 @@ def play_eng(f, unit=None, wrong=(), warmup=False, seen=None, max_q=30):
             break
         card = f.page.locator('.stage .q-card').last
         f.mark()
-        o = eng_answer(f, right=i not in wrong, unit=unit)
+        o = eng_answer(f, right=i not in wrong, unit=unit, subject=subject)
         if seen is not None and o['t'] not in seen:
             seen[o['t']] = o
             f.shot(f'{"warmup" if warmup else "q"}-{o["t"]}')
@@ -1032,7 +1032,7 @@ def t_shop_trophies_parent(f):
     f.page.get_by_label('answer').fill(str(int(m[1]) * int(m[2])))
     f.page.get_by_role('button', name='Enter').click()
     f.wait_text("Max's progress")
-    for s in ['Trouble spots', 'Math skills', 'English units', 'Spelling lists', 'Settings', 'Download backup']:
+    for s in ['Trouble spots', 'Math skills', 'Word Wizard units', 'Science Lab units', 'Code Club units', 'Spelling lists', 'Settings', 'Download backup']:
         f.check(s in f.text(), f'grown-ups page lacks "{s}"')
     f.shot('parent')
     with f.page.expect_download() as dl:
@@ -1257,6 +1257,51 @@ def t_quests_stickers(f):
     f.page.wait_for_selector('.sticker-page')
 
 
+def t_lesson_subjects(f):
+    """Science Lab and Code Club: home card, subject home, lesson cards, a Warm-up quiz to a star, code blocks."""
+    new_player(f, 'Leo')
+    for subj, title in (('science', 'Science Lab'), ('coding', 'Code Club')):
+        f.goto('/')
+        card = f.page.locator('.hub-card', has_text=title)
+        f.check(card.count() == 1, f'home has no {title} card')
+        card.click()
+        f.page.wait_for_selector('.skill.eng')
+        f.check(f.page.locator('.topbar-title').inner_text() == title, f'{title} home title')
+        f.check(f.page.locator('.unit-title').count() >= 5, f'{title} has too few sections')
+        f.shot(f'{subj}-home')
+        unit = f.page.locator('.skill.eng').first.get_attribute('href').split('/')[-1]
+        f.page.locator('.skill.eng').first.click()
+        f.page.wait_for_selector('.lesson')
+        f.shot(f'{subj}-lesson')
+        while f.page.get_by_role('button', name='Next ›').count():
+            f.page.get_by_role('button', name='Next ›').click()
+        f.page.locator('.tier-row').first.click()
+        f.page.wait_for_selector('.stage .q-card')
+        play_eng(f, unit=unit, wrong=(1,), warmup=True, subject=subj)
+        t = results_text(f)
+        f.check('earned' in t, f'{title} Warm-up with 1 miss of 6 did not earn a star: {t[:200]!r}')
+        f.shot(f'{subj}-results')
+    # Code blocks keep indentation and never widen the page
+    f.goto('/coding/quiz/py-loops/3', wait='.stage .q-card')
+    seen_code = False
+    for _ in range(12):
+        if f.done():
+            break
+        block = f.page.locator('.stage .q-card .code-block')
+        if block.count():
+            seen_code = True
+            f.check('    ' in block.inner_text(), 'code block lost its indentation')
+            f.shot('code-block')
+        f.mark()
+        eng_answer(f, unit='py-loops', subject='coding')
+        f.page.wait_for_timeout(300)
+        nxt = f.page.locator('.stage .q-card').last.get_by_role('button', name='Got it ›')
+        if nxt.count():
+            nxt.click()
+        f.wait_next()
+    f.check(seen_code, 'no code block shown in the Python loops Expert quiz')
+
+
 TESTS = [
     ('profiles', t_profiles),
     ('math_map', t_math_map),
@@ -1271,6 +1316,7 @@ TESTS = [
     ('buddy_gear_chest', t_buddy_gear_chest),
     ('new_math', t_new_math),
     ('quests_stickers', t_quests_stickers),
+    ('lesson_subjects', t_lesson_subjects),
 ]
 
 

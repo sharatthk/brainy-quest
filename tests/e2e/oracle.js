@@ -129,14 +129,16 @@ async ({ skillId, tier, sel }) => {
 }
 
 //---- english
-// Identifies the English question on screen from js/english/content.js and returns how to answer it.
-async ({ unitId }) => {
+// Identifies the lesson question on screen (English, Science or Coding) from its content module and returns how to answer it.
+async ({ unitId, subject = 'english' }) => {
   const base = new URL('.', location.href).href;
   const C = await import(base + 'js/english/content.js');
+  const S = await import(base + 'js/lessons/subjects.js');
+  const subj = S.SUBJECTS.find(x => x.id === subject);
   const card = [...document.querySelectorAll('.stage .q-card')].pop();
   if (!card) return { err: 'no question card' };
   const tag = card.querySelector('.q-tag')?.textContent || '';
-  const units = unitId ? [C.unitById(unitId)] : C.ENGLISH_UNITS.filter(u => tag === `${u.emoji} ${u.title}`);
+  const units = unitId ? [subj.units.find(u => u.id === unitId)] : subj.units.filter(u => tag === `${u.emoji} ${u.title}`);
   const prompt = card.querySelector('.q-prompt')?.textContent;
   const passage = card.querySelector('.passage')?.textContent || null;
   const choices = [...card.querySelectorAll('.choice')].map(b => b.textContent);

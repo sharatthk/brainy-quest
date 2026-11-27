@@ -88,7 +88,7 @@ export function lessonViews(subj) {
           h('button', { class: 'btn alt', disabled: i === 0, onclick: () => { i--; stopSpeaking(); show(); } }, '‹ Back'),
           i < last ? h('button', { class: 'btn', onclick: () => { i++; stopSpeaking(); show(); } }, 'Next ›') : null),
         i === last ? h('div', { class: 'stack quiz-pick' }, h('h3', {}, '🎯 Pick your quiz'),
-          tierList({ tiers: LESSON_TIERS, got: r?.stars || 0, onPick: startQuiz })) : null);
+          tierList({ tiers: LESSON_TIERS, got: r?.stars || 0, onPick: startQuiz })) : '');
     };
     show();
     return stopSpeaking;
@@ -133,6 +133,8 @@ export function lessonViews(subj) {
       f.stage.replaceChildren(card);
       if (q.p) card.append(h('blockquote', { class: 'passage' }, q.p));
       card.append(h('p', { class: 'q-prompt' }, q.q));
+      // Optional code (Code Club): plain text in a monospace block that keeps indentation.
+      if (q.code) card.append(h('pre', { class: 'code-block' }, h('code', {}, q.code)));
       const fb = h('div', { class: 'feedback' });
       let advanced = false;
       const go = () => {

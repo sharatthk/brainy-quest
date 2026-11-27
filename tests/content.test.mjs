@@ -31,6 +31,18 @@ test('lesson units (English, Science, Coding) are well formed', async () => {
   }
 });
 
+test('lesson text has no em dash and fill-in marks match the Warm-up hint', async () => {
+  const { SUBJECTS } = await import('../js/lessons/subjects.js');
+  for (const subj of SUBJECTS) {
+    assert.ok(!JSON.stringify(subj.units).includes('\u2014'), `${subj.id}: em dash found`);
+    for (const u of subj.units) {
+      for (const q of u.questions.filter(x => x.t === 'fill' && /^[^\p{L}\p{N}]$/u.test(x.a[0]))) {
+        assert.ok(q.a.every(m => '.?!'.includes(m)), `${u.id}: the Warm-up hint only offers . ? ! but "${q.q}" wants ${q.a}`);
+      }
+    }
+  }
+});
+
 test('starter spelling lists are well formed', () => {
   for (const l of BUILTIN_LISTS.filter(x => x.id.startsWith('starter-'))) {
     const seen = new Set();
@@ -141,4 +153,61 @@ test('spelling star tiers split lists by difficulty', () => {
   assert.equal(challengeGoal(150), 10);
   assert.equal(challengeGoal(5), 3, 'a tiny tier still leaves room for the 2 misses 3 lives allow');
   assert.equal(challengeGoal(1), 1);
+});
+
+test('coding questions with code are well formed', async () => {
+  const { CODING_UNITS } = await import('../js/coding/content.js');
+  const { SUBJECTS } = await import('../js/lessons/subjects.js');
+  let withCode = 0;
+  for (const subj of SUBJECTS) {
+    for (const u of subj.units) {
+      for (const q of u.questions) {
+        if (q.code === undefined) continue;
+        assert.equal(subj.id, 'coding', `${u.id}: only Code Club questions show code`);
+        withCode++;
+        const where = `${u.id}: "${q.q}"`;
+        assert.equal(typeof q.code, 'string', where);
+        assert.ok(q.code.trim(), `${where} has empty code`);
+        assert.equal(q.code, q.code.replace(/^\n+|\n+$/g, ''), `${where} code starts or ends with a blank line`);
+        assert.ok(!q.code.includes('\t'), `${where} code uses tabs; indent with spaces`);
+        assert.ok(!/&(lt|gt|amp|quot);/.test(q.code), `${where} code is plain text, not HTML (write < not &lt;)`);
+        for (const line of q.code.split('\n')) {
+          assert.equal(line, line.trimEnd(), `${where} trailing spaces`);
+          assert.equal(line.match(/^ */)[0].length % 2, 0, `${where} odd indentation: "${line}"`);
+          assert.ok(line.length <= 32, `${where} line too long to fit a phone without scrolling: "${line}"`);
+        }
+      }
+    }
+  }
+  assert.ok(withCode >= 40, `expected plenty of code questions, got ${withCode}`);
+  for (const u of CODING_UNITS) {
+    assert.ok(u.lessons.length >= 2 && u.lessons.length <= 3, `${u.id}: 2-3 lesson cards`);
+    assert.ok(u.questions.length >= 9 && u.questions.length <= 12, `${u.id}: 9-12 questions`);
+    assert.deepEqual(new Set(u.questions.map(q => q.t)), new Set(['mc', 'tap', 'fill']), `${u.id} mixes mc, tap and fill`);
+    for (const q of u.questions.filter(x => x.t === 'fill')) assert.ok(q.a[0].length > 1, `${u.id}: the Warm-up hint would give away "${q.a[0]}"`);
+    for (const l of u.lessons) {
+      for (const [, inner] of l.body.matchAll(/<pre><code>([\s\S]*?)<\/code><\/pre>/g)) assert.ok(!inner.includes('<'), `${u.id}: escape < inside <pre> in "${l.title}"`);
+    }
+  }
+});
+
+test('no em dashes in lesson content', async () => {
+  const { SUBJECTS } = await import('../js/lessons/subjects.js');
+  for (const subj of SUBJECTS) assert.ok(!JSON.stringify(subj.units).includes('\u2014'), subj.id);
+});
+
+test('science lab covers every section and its warm-ups are valid', async () => {
+  const { SCIENCE_UNITS, SCIENCE_SECTIONS } = await import('../js/science/content.js');
+  assert.ok(SCIENCE_UNITS.length >= 18);
+  for (const s of SCIENCE_SECTIONS) assert.ok(SCIENCE_UNITS.some(u => u.section === s.id), `section ${s.id} has units`);
+  const rng = seeded(7);
+  for (const u of SCIENCE_UNITS) {
+    assert.ok(u.lessons.length >= 2 && u.questions.length >= 9, u.id);
+    assert.ok(!JSON.stringify(u).includes('—'), `${u.id} has an em dash`);
+    for (const it of quizItems(u, 1, rng)) {
+      const q = u.questions[it.idx];
+      if (q.t === 'mc') assert.ok(it.choices.length === 2 && it.choices.includes(q.a), u.id);
+      else assert.ok(it.hint, u.id);
+    }
+  }
 });

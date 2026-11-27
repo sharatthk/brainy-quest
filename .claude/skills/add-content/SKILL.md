@@ -20,14 +20,17 @@ Every stage has three star tiers (★ Easy, ★★ Medium, ★★★ Hard). Ever
 4. **Tests** in `tests/math.test.mjs`: every tier is auto-checked for validity; add shape assertions to "star tiers generate exactly the shape each tier promises" (or the basics test) proving ★ < ★★ < ★★★ really differ.
 5. Sample real output before trusting it: print ~3 problems per tier with a seeded rng and read them. Watch for trivial problems (zeros, `1 × 2`, `30 ÷ 3`).
 
-## English unit
+## English, Science or Coding unit
 
-In `js/english/content.js`: `U(id, section, title, emoji, [L(title, html), ...], questions)`. New section? Add it to `ENGLISH_SECTIONS` (order = page order).
+All three use the shared lesson engine (`js/lessons/lessonApp.js`, registry in `js/lessons/subjects.js`). Units live in `js/english/content.js`, `js/science/content.js` or `js/coding/content.js`: `U(id, section, title, emoji, [L(title, html), ...], questions)`. New section? Add it to `ENGLISH_SECTIONS` (order = page order).
 - At least 7 questions (Expert asks all, Warm-up asks 6, Quiz asks 8).
 - `mc`: `{ t:'mc', q, c:[...], a, e }`. The Warm-up keeps the answer plus one random wrong choice, so every wrong choice must be plausible on its own.
 - `tap`: `{ t:'tap', q, s, a:[words], e }`. Each answer word must appear exactly once in `s`.
 - `fill`: `{ t:'fill', q, s:'... ___ ...', a:[accepted answers], e }`. Warm-up hints "It starts with x", so put the most natural answer first.
 - Original content only, short sentences, kid-friendly explanations in `e`.
+- Coding questions may add `code: '...'` (plain text, shown as an indented code block; keep lines at most 32 characters so they fit a phone). Run every Python snippet to confirm the stated output.
+- Source books (study guides) are only a topic checklist: write every lesson, example and question yourself, and never commit the books.
+- A new lesson subject is one entry in `js/lessons/subjects.js` plus its id in `js/lessons/ids.js`.
 
 ## Spelling list
 
