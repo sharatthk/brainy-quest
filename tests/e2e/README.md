@@ -49,3 +49,4 @@ Exit code 1 if any test fails. Old code for comparison: `git -C <repo> archive <
 | new_math | Big Numbers, Algebra and percents of big numbers: every skill at ★/★★/★★★, a miss per skill waits for Got it, `5M`-style answers |
 | quests_stickers | 3 daily quests on home, finishing all of them in one session, quest and sticker rows on results, sticker book (72 slots), Stickers card |
 | lesson_subjects | Science Lab and Code Club: home cards, subject home, lesson cards, a Warm-up quiz to a star, indented code blocks in Python quizzes |
+| middle_math | Middle school math units on the map, every skill in js/math/middle.js at ★/★★/★★★ with a miss each, typed negative answers |

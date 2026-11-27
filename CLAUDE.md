@@ -17,3 +17,5 @@ Gamified math, English and spelling PWA for kids (about 6 to 11). Vanilla JS ES 
 - Must work at phone width (390px) and desktop, in light and dark ("space") themes. Check both in the browser for any UI change.
 - No em dash characters anywhere.
 - `js/spelling/woc2024.js` is generated (tools/build-woc.py); never edit by hand.
+- Source books or study guides are a topic checklist only: write all content yourself, never commit them, delete them when done.
+- Self-improving process: end every task report with 2-3 concrete next improvements (new or better skills, app features, workflow), grounded in what happened that session.

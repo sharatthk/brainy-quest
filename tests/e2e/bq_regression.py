@@ -433,7 +433,7 @@ def t_math_map(f):
     new_player(f, 'Mia')
     f.goto('/math')
     f.shot('map')
-    from_js = f.page.evaluate("async () => { const S = await import(new URL('.', location.href).href + 'js/math/skills.js'); return { units: S.UNITS.map(u => u.title), skills: S.SKILLS.map(s => [s.id, s.title]) }; }")
+    from_js = f.page.evaluate("async () => { const S = await import(new URL('.', location.href).href + 'js/math/skills.js'); return { units: S.UNITS.map(u => u.title), skills: S.UNITS.flatMap(u => S.SKILLS.filter(s => s.unit === u.id).map(s => [s.id, s.title])) }; }")  # map order: by unit, then skill
     units = f.page.locator('section.unit')
     f.check(units.count() == len(from_js['units']), f'{units.count()} unit sections, expected {len(from_js["units"])}')
     for k, t in enumerate(from_js['units']):
@@ -1186,6 +1186,11 @@ def t_buddy_gear_chest(f):
 
 
 NEW_MATH = ['pct-big', 'big-read', 'big-addsub', 'big-muldiv', 'big-pct', 'alg-missing', 'alg-one', 'alg-two', 'alg-expr', 'alg-rule']
+# Middle school skills (js/math/middle.js)
+MIDDLE_MATH = ['frac-muldiv', 'dec-muldiv', 'alg-like', 'alg-ineq', 'ratio-basic', 'ratio-rate', 'ratio-prop', 'ratio-convert',
+               'money-tax', 'money-discount', 'money-interest', 'money-change', 'int-line', 'int-abs', 'int-add', 'int-muldiv',
+               'fm-gcf', 'fm-lcm', 'expo-pow', 'expo-ops', 'expo-sci', 'expo-roots', 'geo-angles', 'geo-area', 'geo-circle',
+               'geo-volume', 'geo-pythag', 'geo-scale', 'stats-center', 'stats-prob', 'graph-points', 'graph-slope', 'graph-linear']
 
 
 def t_new_math(f):
@@ -1217,6 +1222,39 @@ def t_new_math(f):
     card = f.page.locator('.stage .q-card').last
     f.check('6M' in card.inner_text(), 'big-number hint (6M or 6 million) missing')
     card.get_by_label('answer', exact=True).fill(f"{int(o['answer'] // 1_000_000)}M")
+    card.get_by_label('answer', exact=True).press('Enter')
+    card.locator('.fb.good').wait_for(timeout=3000)
+
+
+def t_middle_math(f):
+    """Middle school math (integers, ratios, money, exponents, geometry, statistics, graphs): every tier, a miss each, negative answers."""
+    new_player(f, 'Mia')
+    f.goto('/math')
+    units = ' '.join(f.page.locator('.unit-title').all_inner_texts())
+    for u in ('Ratios & Rates', 'Percents & Money', 'Integers', 'Geometry', 'Statistics & Probability', 'Graphs & Functions'):
+        f.check(u in units, f'map lacks the {u} unit')
+    for sid in MIDDLE_MATH:
+        for tier in (1, 2, 3):
+            f.goto(f'/math/play/practice/{sid}/{tier}', wait='.stage .q-card')
+            card = f.page.locator('.stage .q-card').last
+            f.shot(f'{sid}-{tier}')
+            f.mark()
+            wrong = tier == 3
+            o = math_answer(f, right=not wrong, skill=sid, tier=tier, submit='enter')
+            if wrong:
+                card.locator('.fb.bad').wait_for(timeout=3000)
+                f.check(f'The answer is {o["answerText"]}' in card.locator('.fb.bad').inner_text(), f'{sid}★{tier}: wrong feedback lacks the answer')
+                f.page.wait_for_timeout(600)
+                f.check(card.locator('.fb.bad').count() == 1, f'{sid}★{tier}: wrong answer did not wait for Got it')
+                card.get_by_role('button', name='Got it ›').click()
+            else:
+                card.locator('.fb.good').wait_for(timeout=3000)
+            f.wait_next()
+    # A negative answer typed with a minus sign is accepted
+    f.goto('/math/play/practice/int-add/1', wait='.stage .q-card')
+    o = math_oracle(f, skill='int-add', tier=1)
+    card = f.page.locator('.stage .q-card').last
+    card.get_by_label('answer', exact=True).fill(str(o['answer']))
     card.get_by_label('answer', exact=True).press('Enter')
     card.locator('.fb.good').wait_for(timeout=3000)
 
@@ -1317,6 +1355,7 @@ TESTS = [
     ('new_math', t_new_math),
     ('quests_stickers', t_quests_stickers),
     ('lesson_subjects', t_lesson_subjects),
+    ('middle_math', t_middle_math),
 ]
 
 

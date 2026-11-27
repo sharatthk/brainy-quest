@@ -6,6 +6,7 @@ import {
   genFracAdd, genFracOf, genDecPlace, genDecAdd, genPctIntro, genPctOf, genWordAddSub, genWordMulDiv,
 } from './skills.js';
 import { randInt, pick } from '../shared/util.js';
+import { MIDDLE_TIERS } from './middle.js';
 
 // ---- Shape helpers for column problems ----
 const digits = n => String(n).split('').reverse().map(Number);
@@ -57,6 +58,7 @@ function divBy2Digits(rng, lo, hi) {
 const T = (label, gen) => ({ label, gen });
 
 export const TIERS = {
+  ...MIDDLE_TIERS,
   // ---- Math basics ----
   'basic-count': [T('Count the pictures', rng => genCount(rng, 1)), T('Before and after', rng => genCount(rng, 2)), T('Which is bigger?', rng => genCount(rng, 3))],
   'basic-add': [T('Sums to 5', rng => genFact(rng, { max: 5 })), T('Sums to 10', rng => genFact(rng, { max: 10 })), T('Sums to 18: 8 + 7', rng => genFact(rng, { max: 18 }))],

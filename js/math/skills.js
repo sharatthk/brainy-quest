@@ -2,6 +2,8 @@
 // Pure module (no DOM) so it can be unit tested in Node.
 import { randInt, pick, shuffle, gcd } from '../shared/util.js';
 
+import { MIDDLE_UNITS, MIDDLE_SKILLS } from './middle.js';
+
 export const COL = ['ones', 'tens', 'hundreds', 'thousands', 'ten-thousands', 'hundred-thousands'];
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 export const dls = n => String(n).split('').reverse().map(Number); // least significant digit first
@@ -246,10 +248,11 @@ export function checkAnswer(p, given) {
     if (!/^\d+$/.test(n) || !/^\d+$/.test(d) || Number(d) === 0) return false;
     return Number(n) * p.answer.d === p.answer.n * Number(d);
   }
-  const s = String(given ?? '').replace(/[,\s$%]/g, '');
+  const s = String(given ?? '').replace(/[,\s$%]/g, '').replace(/^[−–]/, '-');
   if (p.answerType === 'big') return parseBigNumber(given) === p.answer;
+  if (p.answerType === 'int') return /^-?\d+$/.test(s) && Number(s) === p.answer;
   if (p.answerType === 'decimal') {
-    if (!/^\d*\.?\d+$/.test(s)) return false;
+    if (!/^-?\d*\.?\d+$/.test(s)) return false;
     return Math.abs(parseFloat(s) - p.answer) < 1e-9;
   }
   return /^\d+$/.test(s) && Number(s) === p.answer;
@@ -921,6 +924,7 @@ export const UNITS = [
   { id: 'dec', title: 'Decimals & Percents', emoji: '💯' },
   { id: 'big', title: 'Big Numbers', emoji: '🌌' },
   { id: 'alg', title: 'Algebra', emoji: '🔮' },
+  ...MIDDLE_UNITS,
 ];
 
 const S = (id, unit, title, emoji, requires, desc, gen, extra = {}) => ({ id, unit, title, emoji, requires, desc, gen, ...extra });
@@ -1006,6 +1010,7 @@ export const SKILLS = [
   S('alg-two', 'alg', 'Two-step equations', '🪜', ['alg-one'], '2x + 3 = 11', rng => genTwoStep(rng, 1)),
   S('alg-expr', 'alg', 'Work out expressions', '📐', ['alg-one'], 'If x = 3, what is 4x + 5?', rng => genExpr(rng, 1)),
   S('alg-rule', 'alg', 'Find the rule', '🔁', ['alg-missing'], 'In → Out tables', rng => genRule(rng, 1)),
+  ...MIDDLE_SKILLS,
 ];
 
 export const skillById = id => SKILLS.find(s => s.id === id);

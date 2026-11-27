@@ -44,7 +44,7 @@ export function buildQuestion(card, pr, { onSubmit, compact = false }) {
     card.append(h('div', { class: 'q-prompt', html: pr.kind === 'division' ? `<span class="big-num">${pr.prompt} = ?</span>` : pr.prompt }));
     if (pr.visual) card.append(h('div', { class: 'viz-wrap', html: pr.visual }));
     const mk = (label, cls = '') => {
-      const i = h('input', { class: `answer-input ${cls}`, inputmode: pr.answerType === 'decimal' ? 'decimal' : pr.answerType === 'big' ? 'text' : 'numeric', autocomplete: 'off', 'aria-label': label });
+      const i = h('input', { class: `answer-input ${cls}`, inputmode: pr.answerType === 'decimal' ? 'decimal' : pr.answerType === 'big' || pr.answerType === 'int' ? 'text' : 'numeric', autocomplete: 'off', 'aria-label': label });
       onEnter(i, () => submit());
       return i;
     };
