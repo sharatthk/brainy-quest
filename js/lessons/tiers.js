@@ -1,8 +1,8 @@
-// Star tiers for English units: ★ Warm-up, ★★ Quiz, ★★★ Expert. Pure module (no DOM), unit tested.
+// Star tiers for lesson units (English, Science, Coding): ★ Warm-up, ★★ Quiz, ★★★ Expert. Pure module (no DOM), unit tested.
 import { shuffle, pick } from '../shared/util.js';
 import { passed, needToPass } from '../shared/mastery.js';
 
-export const ENGLISH_TIERS = [
+export const LESSON_TIERS = [
   { name: 'Warm-up', label: '6 questions with extra help', count: 6 },
   { name: 'Quiz', label: '8 questions', count: 8 },
   { name: 'Expert', label: 'Every question, at most 1 miss', count: Infinity },
@@ -11,7 +11,7 @@ export const ENGLISH_TIERS = [
 // The questions of one tier quiz: [{ idx, choices?, hint? }]. The Warm-up trims multiple choice to
 // two options and says how many words to tap or what a fill-in starts with.
 export function quizItems(unit, tier, rng = Math.random) {
-  const order = shuffle(unit.questions.map((_, k) => k), rng).slice(0, ENGLISH_TIERS[tier - 1].count);
+  const order = shuffle(unit.questions.map((_, k) => k), rng).slice(0, LESSON_TIERS[tier - 1].count);
   return order.map(idx => {
     const q = unit.questions[idx];
     if (tier !== 1) return { idx };

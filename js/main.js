@@ -7,7 +7,8 @@ import { viewShop, viewTrophies } from './views/shop.js';
 import { viewParent } from './views/parent.js';
 import { viewMap, viewPlay } from './math/mathApp.js';
 import { viewSpeedPicker, viewSpeedPlay } from './math/speed.js';
-import { viewEnglishHome, viewLesson, viewQuiz, viewReview } from './english/englishApp.js';
+import { lessonViews } from './lessons/lessonApp.js';
+import { SUBJECTS } from './lessons/subjects.js';
 import { initSync } from './sync/sync.js';
 import { viewSpellingHome, viewPractice, viewChallenge, viewWords, viewImport } from './spelling/spellingApp.js';
 
@@ -29,11 +30,14 @@ route('/math/play/:mode/:skill/:tier', needProfile(viewPlay));
 route('/math/speed', needProfile(viewSpeedPicker));
 route('/math/speed/:topic/:secs', needProfile(viewSpeedPlay));
 route('/math/speed/:topic/:secs/:tier', needProfile(viewSpeedPlay));
-route('/english', needProfile(viewEnglishHome));
-route('/english/unit/:id', needProfile(viewLesson));
-route('/english/quiz/:id', needProfile(viewQuiz));
-route('/english/quiz/:id/:tier', needProfile(viewQuiz));
-route('/english/review', needProfile(viewReview));
+for (const subj of SUBJECTS) {
+  const v = lessonViews(subj), b = `/${subj.id}`;
+  route(b, needProfile(v.viewHome));
+  route(`${b}/unit/:id`, needProfile(v.viewLesson));
+  route(`${b}/quiz/:id`, needProfile(v.viewQuiz));
+  route(`${b}/quiz/:id/:tier`, needProfile(v.viewQuiz));
+  route(`${b}/review`, needProfile(v.viewReview));
+}
 route('/spelling', needProfile(viewSpellingHome));
 route('/spelling/practice/:list', needProfile(viewPractice));
 route('/spelling/practice/:list/:tier', needProfile(viewPractice));

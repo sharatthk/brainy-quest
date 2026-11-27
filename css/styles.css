@@ -130,6 +130,8 @@ section + section, .card + .card { margin-top: 1rem; }
 .hub-card.math { background: linear-gradient(140deg, #4f97ff, var(--math)); }
 .hub-card.eng { background: linear-gradient(140deg, #9d5cff, var(--eng)); }
 .hub-card.spell { background: linear-gradient(140deg, #ffc93c, var(--spell)); color: #3a2a00; }
+.hub-card.sci { background: linear-gradient(140deg, #2fc59a, #12936b); }
+.hub-card.code { background: linear-gradient(140deg, #3d4a6b, #1f2740); }
 .hub-emoji { font-size: 3rem; }
 .hub-text { display: flex; flex-direction: column; flex: 1; }
 .hub-text b { font-size: 1.45rem; }

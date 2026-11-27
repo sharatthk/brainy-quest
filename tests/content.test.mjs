@@ -4,15 +4,17 @@ import { ENGLISH_UNITS, ENGLISH_SECTIONS, cleanWord } from '../js/english/conten
 import { BUILTIN_LISTS } from '../js/spelling/words.js';
 import { emptyRec, record, newCard, grade, isDue, cardStatus } from '../js/shared/mastery.js';
 import { isCorrectSpelling, diffSpelling, parseWordList, blankWord, wordDifficulty, splitTiers, challengeGoal } from '../js/spelling/logic.js';
-import { quizItems, passedQuiz, needFor, ENGLISH_TIERS } from '../js/english/tiers.js';
+import { quizItems, passedQuiz, needFor, LESSON_TIERS } from '../js/lessons/tiers.js';
 import { seeded } from '../js/shared/util.js';
 
-test('english units are well formed', () => {
+test('lesson units (English, Science, Coding) are well formed', async () => {
+  const { SUBJECTS } = await import('../js/lessons/subjects.js');
+  for (const subj of SUBJECTS) {
   const ids = new Set();
-  for (const u of ENGLISH_UNITS) {
+  for (const u of subj.units) {
     assert.ok(!ids.has(u.id), `duplicate ${u.id}`);
     ids.add(u.id);
-    assert.ok(ENGLISH_SECTIONS.some(s => s.id === u.section), u.id);
+    assert.ok(subj.sections.some(s => s.id === u.section), u.id);
     assert.ok(u.lessons.length >= 1 && u.questions.length >= 7, u.id);
     for (const q of u.questions) {
       if (q.t === 'mc') {
@@ -25,6 +27,7 @@ test('english units are well formed', () => {
         assert.ok(q.s.includes('___') && q.a.length, u.id);
       } else assert.fail(`unknown type ${q.t}`);
     }
+  }
   }
 });
 
@@ -121,7 +124,7 @@ test('english star tiers', () => {
   assert.ok(passedQuiz(3, 8, 9) && !passedQuiz(3, 7, 9), 'Expert allows one miss');
   assert.ok(passedQuiz(2, 7, 8) && !passedQuiz(2, 6, 8));
   assert.equal(needFor(1, 6), 5);
-  assert.equal(ENGLISH_TIERS.length, 3);
+  assert.equal(LESSON_TIERS.length, 3);
 });
 
 test('spelling star tiers split lists by difficulty', () => {

@@ -4,7 +4,8 @@ import { screen } from './common.js';
 import { profile, getState, createProfile, switchProfile } from '../store.js';
 import { levelProgress, currentStreak, dailyXp } from '../shared/rewards.js';
 import { SKILLS } from '../math/skills.js';
-import { ENGLISH_UNITS } from '../english/content.js';
+import { SUBJECTS } from '../lessons/subjects.js';
+import { book } from '../lessons/lessonApp.js';
 import { MASTERED_BOX } from '../shared/mastery.js';
 import { go, render as rerender } from '../router.js';
 import { syncCard } from './syncCard.js';
@@ -24,7 +25,6 @@ export function viewHome() {
   const today = dailyXp(p);
   const goal = p.settings.dailyGoal;
   const mathStars = Object.values(p.math.skills).reduce((s, r) => s + (r.stars || 0), 0);
-  const engStars = Object.values(p.english.units).reduce((s, r) => s + (r.stars || 0), 0);
   const mastered = Object.values(p.spelling.cards).filter(c => c.box >= MASTERED_BOX).length;
 
   const main = screen({ title: 'Brainy Quest', back: null, cls: 'home' });
@@ -41,8 +41,9 @@ export function viewHome() {
     questsCard(p),
     h('div', { class: 'hub' },
       hubCard('#/math', 'math', '🧮', 'Math Quest', 'Carry, borrow, multiply, divide, fractions, percents', `${mathStars}/${SKILLS.length * 3} ★`),
-      hubCard('#/english', 'eng', '📚', 'Word Wizard', 'Grammar, punctuation, vocabulary, reading', `${engStars}/${ENGLISH_UNITS.length * 3} ★`),
-      hubCard('#/spelling', 'spell', '🐝', 'Spelling Bee', 'Hear it, spell it, master it', `${mastered} words mastered`)),
+      hubCard('#/spelling', 'spell', '🐝', 'Spelling Bee', 'Hear it, spell it, master it', `${mastered} words mastered`),
+      ...SUBJECTS.filter(s => s.units.length).map(s => hubCard(`#/${s.id}`, s.cls, s.emoji, s.title, s.desc,
+        `${Object.values(book(p, s).units).reduce((n, r) => n + (r.stars || 0), 0)}/${s.units.length * 3} ★`))),
     h('div', { class: 'hub small-hub' },
       miniCard('#/stickers', '📒', 'Stickers'),
       miniCard('#/shop', '🛍️', 'Shop'),

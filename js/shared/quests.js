@@ -11,6 +11,8 @@ export const QUESTS = [
   Q('math', '🧮', n => `Get ${n} math answers right`, [8, 10, 12], 20, 'math'),
   Q('english', '📚', n => `Get ${n} English answers right`, [5, 6, 8], 20, 'english'),
   Q('spelling', '🐝', n => `Spell ${n} words right`, [5, 6, 8], 20, 'spelling'),
+  Q('science', '🔬', n => `Get ${n} science answers right`, [5, 6, 8], 20, 'science'),
+  Q('coding', '💻', n => `Get ${n} coding answers right`, [5, 6, 8], 20, 'coding'),
   Q('sessions', '🏁', n => `Finish ${n} sessions`, [2, 3], 25),
   Q('combo', '🔥', n => `Get ${n} right in a row`, [5, 8, 10], 20),
   Q('stars', '⭐', n => (n === 1 ? 'Earn a star' : `Earn ${n} stars`), [1, 2], 30),

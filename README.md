@@ -63,7 +63,7 @@ You can still add your own lists with **Spelling Bee → Import word list** (one
 
 - `js/math/skills.js`: skill tree, generators, worked solutions, misconception detection (pure, unit tested)
 - `js/math/column.js`, `js/math/guided.js`: column workspace and coach mode
-- `js/math/tiers.js`: the three star tiers of every math skill (pure, unit tested). Tier pass rules live in `js/shared/mastery.js`; English and spelling tiers in `js/english/tiers.js` and `js/spelling/logic.js`
+- `js/math/tiers.js`: the three star tiers of every math skill (pure, unit tested). Tier pass rules live in `js/shared/mastery.js`; lesson-subject tiers (English, Science, Coding) in `js/lessons/tiers.js`, spelling tiers in `js/spelling/logic.js`. `js/lessons/lessonApp.js` is the shared lesson engine and `js/lessons/subjects.js` the subject registry
 - `js/math/question.js`: renders any problem's input (shared by practice and speed); `js/math/speed.js` + `scoring.js`: Speed Challenge
 - `js/english/content.js`: all lessons and questions (add units here)
 - `js/spelling/words.js`: starter lists. `js/spelling/logic.js`: matching, diff and import parsing

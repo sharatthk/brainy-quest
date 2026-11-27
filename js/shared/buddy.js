@@ -1,6 +1,7 @@
 // Buddy pet: the player's avatar grows as they learn. Pure (no DOM), unit tested.
 // Food = every star earned in any game + 1 per finished session ("meals").
 import { pick } from './util.js';
+import { LESSON_IDS } from '../lessons/ids.js';
 
 export const DEFAULT_NAME = 'Pip';
 
@@ -38,9 +39,9 @@ const sum = xs => xs.reduce((s, x) => s + (Number(x) || 0), 0);
 // Every star earned in any game (math skills, English units, spelling lists).
 export function totalStars(p) {
   const math = sum(Object.values(p.math?.skills || {}).map(r => r?.stars));
-  const eng = sum(Object.values(p.english?.units || {}).map(r => r?.stars));
+  const lessons = sum(LESSON_IDS.flatMap(id => Object.values(p[id]?.units || {}).map(r => r?.stars)));
   const spell = sum(Object.values(p.spelling?.stars || {}));
-  return math + eng + spell;
+  return math + lessons + spell;
 }
 
 export function buddyFood(p) {

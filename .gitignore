@@ -4,3 +4,5 @@ private/
 .claude/settings.local.json
 tests/e2e/shots/
 __pycache__/
+# Source books (never commit)
+/*.pdf

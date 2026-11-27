@@ -3,7 +3,8 @@ import { h, toast, onEnter } from '../ui.js';
 import { screen, stars } from './common.js';
 import { profile, save, getState, exportData, importData, deleteProfile } from '../store.js';
 import { SKILLS, UNITS } from '../math/skills.js';
-import { ENGLISH_UNITS } from '../english/content.js';
+import { SUBJECTS } from '../lessons/subjects.js';
+import { book } from '../lessons/lessonApp.js';
 import { recentAccuracy, cardStatus } from '../shared/mastery.js';
 import { englishVoices, speak, speechSupported } from '../shared/speech.js';
 import { levelOf, currentStreak } from '../shared/rewards.js';
@@ -56,14 +57,16 @@ export function viewParent() {
         return h('tr', {}, h('td', {}, `${s.emoji} ${s.title}`), h('td', {}, stars(r?.stars || 0)), h('td', {}, a == null ? '-' : `${Math.round(a * 100)}%`), h('td', {}, r?.attempts || 0));
       })))))));
 
-  // English
-  main.append(h('section', { class: 'card' }, h('h3', {}, '📚 English units'),
-    h('div', { class: 'table-wrap' }, h('table', {},
-      h('thead', {}, h('tr', {}, h('th', {}, 'Unit'), h('th', {}, 'Stars'), h('th', {}, 'Best score'), h('th', {}, 'Quizzes'))),
-      h('tbody', {}, ENGLISH_UNITS.map(u => {
-        const r = p.english.units[u.id];
-        return h('tr', {}, h('td', {}, `${u.emoji} ${u.title}`), h('td', {}, stars(r?.stars || 0)), h('td', {}, r ? `${Math.round(r.best * 100)}%` : '-'), h('td', {}, r?.attempts || 0));
-      }))))));
+  // Lesson subjects (English, Science, Coding)
+  for (const subj of SUBJECTS.filter(x => x.units.length)) {
+    main.append(h('section', { class: 'card' }, h('h3', {}, `${subj.emoji} ${subj.title} units`),
+      h('div', { class: 'table-wrap' }, h('table', {},
+        h('thead', {}, h('tr', {}, h('th', {}, 'Unit'), h('th', {}, 'Stars'), h('th', {}, 'Best score'), h('th', {}, 'Quizzes'))),
+        h('tbody', {}, subj.units.map(u => {
+          const r = book(p, subj).units[u.id];
+          return h('tr', {}, h('td', {}, `${u.emoji} ${u.title}`), h('td', {}, stars(r?.stars || 0)), h('td', {}, r ? `${Math.round(r.best * 100)}%` : '-'), h('td', {}, r?.attempts || 0));
+        }))))));
+  }
 
   // Spelling
   main.append(h('section', { class: 'card' }, h('h3', {}, '🐝 Spelling lists'),
