@@ -77,7 +77,7 @@ function reviewMath() {
         }
         if (p.kind === 'input' && typeof p.answer === 'number' && !Number.isFinite(p.answer)) err(where, `answer is ${p.answer} for "${txt}"`);
         if ([p.prompt, ...(p.steps || []), ...(p.choices || [])].some(x => EMDASH.test(String(x)))) err(where, `em dash in "${txt}"`);
-        if (/(^|[^\d.])[01] [×÷]|[×÷] [01](?![\d.])|[+−] 0(?![\d.])/.test(txt)) trivial++;
+        if (!String(p.prompt).includes('class="frac"') && /(^|[^\d.])[01] [×÷]|[×÷] \(?−?[01]\)?(?![\d.])|[+−] 0(?![\d.])/.test(txt)) trivial++;
         if (p.kind !== 'column' && !String(p.prompt).includes('stack-sum') && /^\d[\d,.]*\s*[+−]\s*\d[\d,.]*\s*= \?$/.test(txt)) inline++;
         if (s.unit === 'big' && /[×÷]/.test(txt) && /\d{1,3},\d{3},\d{3}/.test(txt)) longBig++;
         if (shown.length < SHOW) shown.push(p);
@@ -86,7 +86,12 @@ function reviewMath() {
       if (trivial > SAMPLES * 0.05) warn(where, `${trivial}/${SAMPLES} problems use 0 or 1 (too easy?)`);
       if (inline) warn(where, `${inline} + or − problems are written inline: use stacked() so the numbers are one below the other`);
       if (longBig) warn(where, `${longBig} × or ÷ problems show millions as digits: use K / M / B symbols (shortBig)`);
-      if (seen.size < Math.min(15, SAMPLES / 4)) warn(where, `only ${seen.size} different problems in ${SAMPLES}: too repetitive`);
+      // Tiers whose topic only has a handful of problems (sums to 5, halves and thirds, √ of small squares, 2³).
+      const SMALL_BY_NATURE = ['basic-add 1', 'basic-sub 1', 'basic-bonds 1', 'frac-id 1', 'frac-equiv 1', 'expo-pow 1', 'expo-roots 1'];
+      if (seen.size < Math.min(15, SAMPLES / 4)) {
+        if (SMALL_BY_NATURE.includes(`${s.id} ${t}`)) console.log(`INFO  ${where}: ${seen.size} different problems (a small topic by nature)`);
+        else warn(where, `only ${seen.size} different problems in ${SAMPLES}: too repetitive`);
+      }
       for (const p of shown) {
         console.log(`  · ${plain(p.prompt ?? `${p.a} ${p.op} ${p.b} = ?`)}${p.choices ? `  [${p.choices.join(' | ')}]` : ''}  ->  ${answerText(p)}`);
         for (const st of p.steps) console.log(`      ${st}`);
@@ -143,7 +148,7 @@ function reviewLessons() {
           if (runPython && u.section === 'python' && !/never stop|forever|infinite/i.test(q.q + q.a)) {
             const out = python(q.code);
             if (out.startsWith('ERROR') && !/error|bug|wrong|fix/i.test(q.q + q.a)) warn(qw, `Python raised ${out}`);
-            else if (q.q === 'What does this program print?' && q.t === 'mc' && out.replace(/\s+/g, ' ') !== q.a.replace(/\s+/g, ' ')) warn(qw, `Python printed "${out.replace(/\n/g, ' / ')}" but the answer is "${q.a}": check by hand`);
+            else if (q.q === 'What does this program print?' && q.t === 'mc' && out.replace(/\s+/g, ' ') !== q.a.replace(/\s+/g, ' ') && !(/lines/.test(q.a) && out.split('\n').every(l => q.a.includes(l.trim())))) warn(qw, `Python printed "${out.replace(/\n/g, ' / ')}" but the answer is "${q.a}": check by hand`);
           }
         }
       }

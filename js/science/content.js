@@ -39,7 +39,7 @@ export const SCIENCE_UNITS = [
     L('Reading graphs', '<p>Graphs turn data into pictures.</p><ul><li><b>Bar graph</b>: compares groups (pets in a class).</li><li><b>Line graph</b>: shows change over time (temperature each hour).</li><li><b>Pie chart</b>: shows parts of a whole (how you spend a day).</li></ul><p>The <b>x-axis</b> runs across the bottom. The <b>y-axis</b> runs up the side. The independent variable usually goes on the x-axis.</p>'),
   ], [
     { t: 'mc', q: 'How many centimeters are in 1 meter?', c: ['100', '10', '1000', '12'], a: '100', e: 'Centi means one hundredth, so 100 cm make 1 m.' },
-    { t: 'mc', q: 'How many grams are in 1 kilogram?', c: ['1000', '100', '10', '16'], a: '1000', e: 'Kilo means 1000.' },
+    { t: 'mc', q: 'How many grams are in 1 kilogram?', c: ['1000', '100', '10', '16'], a: '1000', e: 'The prefix kilo means 1000, so 1 kilogram is 1000 grams.' },
     { t: 'mc', q: 'Which tool measures the volume of a liquid?', c: ['graduated cylinder', 'balance', 'thermometer', 'ruler'], a: 'graduated cylinder', e: 'A graduated cylinder has marks in milliliters.' },
     { t: 'mc', q: 'Which tool measures mass?', c: ['balance', 'thermometer', 'stopwatch', 'graduated cylinder'], a: 'balance', e: 'A balance or scale measures mass in grams or kilograms.' },
     { t: 'mc', q: 'At what temperature does water boil at sea level?', c: ['100 °C', '0 °C', '50 °C', '212 °C'], a: '100 °C', e: 'Water boils at 100 °C (which is 212 °F, but scientists use Celsius).' },
@@ -134,7 +134,7 @@ export const SCIENCE_UNITS = [
     { t: 'mc', q: 'You push an empty cart and a full cart with the same force. Which speeds up more?', c: ['the empty cart', 'the full cart', 'they speed up the same'], a: 'the empty cart', e: 'Force = mass × acceleration. Less mass means more acceleration for the same force.' },
     { t: 'mc', q: 'A rocket pushes hot gas downward. What pushes the rocket up?', c: ['the gas pushing back on it', 'the air above it', 'the moon pulling it', 'its own weight'], a: 'the gas pushing back on it', e: "Newton's 3rd law: an equal and opposite reaction." },
     { t: 'mc', q: 'What unit is force measured in?', c: ['newtons', 'meters', 'grams', 'liters'], a: 'newtons', e: 'Forces are measured in newtons (N), named after Isaac Newton.' },
-    { t: 'fill', q: 'Fill in the number.', s: 'A runner goes 40 meters in 8 seconds. Her speed is ___ m/s.', a: ['5'], e: '40 ÷ 8 = 5 m/s.' },
+    { t: 'fill', q: 'Fill in the number.', s: 'A runner goes 40 meters in 8 seconds. Her speed is ___ m/s.', a: ['5'], e: 'Speed is distance divided by time: 40 meters ÷ 8 seconds = 5 meters each second.' },
     { t: 'fill', q: 'Fill in the missing word.', s: 'The tendency of an object to keep doing what it is doing is called ___.', a: ['inertia'], e: "Inertia is the idea behind Newton's 1st law." },
     { t: 'tap', q: 'Tap the word that gives the direction.', s: 'The plane flew at 800 kilometers per hour toward the west.', a: ['west'], e: 'Speed plus a direction (west) makes a velocity.' },
   ]),

@@ -1,5 +1,5 @@
 // Coach mode: walks the kid through each column, asking about carries and borrows.
-import { h, onEnter } from '../ui.js';
+import { h, onEnter, advanceDelay } from '../ui.js';
 import { guidedPlan } from './skills.js';
 import { columnWidget } from './column.js';
 import { sfx } from '../shared/sound.js';
@@ -36,7 +36,7 @@ export function runGuided(container, p, onDone) {
           });
           msg.textContent = s.success;
           msg.className = 'coach-msg good';
-          setTimeout(next, s.expect ? 1400 : 800);
+          setTimeout(next, advanceDelay(s.expect ? 1400 : 800));
         } else {
           mistakes++;
           sfx.wrong();
@@ -63,7 +63,7 @@ export function runGuided(container, p, onDone) {
         msg.textContent = s.success;
         msg.className = 'coach-msg good';
         inp.disabled = true;
-        setTimeout(next, s.carry ? 1400 : 800);
+        setTimeout(next, advanceDelay(s.carry ? 1400 : 800));
       } else {
         mistakes++;
         tries++;

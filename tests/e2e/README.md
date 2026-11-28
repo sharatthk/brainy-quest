@@ -8,13 +8,14 @@ Needs Python 3 with `pip install playwright && playwright install chromium` (on 
 
 ```sh
 cd tests/e2e
-/usr/bin/python3 bq_regression.py --parallel                 # http://localhost:8777/, phone + desktop at once (~11 min)
+/usr/bin/python3 bq_regression.py --parallel                 # http://localhost:8777/, phone + desktop at once (~10 min)
 /usr/bin/python3 bq_regression.py --base http://host:port/   # another server
 /usr/bin/python3 bq_regression.py --dir /path/to/brainy-quest --parallel   # serve a folder on http://bq.test/ via routing
 /usr/bin/python3 bq_regression.py --viewport phone --only english,spelling
 ```
 
-Options: `--viewport phone|desktop|all`, `--only name,name`, `--parallel` (one process per viewport), `--shots DIR`, `--headed`, `--json out.json`.
+Options: `--viewport phone|desktop|all`, `--only name,name`, `--changed [REF]` (only the flows covering files changed since REF, default HEAD), `--parallel` (one process per viewport), `--shots DIR`, `--headed`, `--json out.json`, `--real-delays`.
+By default the pause after a right answer is shortened to 300 ms (`window.__bqFastAdvance`, read by `advanceDelay` in `js/ui.js`); `--real-delays` keeps the real 1 to 1.5 s. Layout checks wait for CSS animations to finish, except the buddy's (overlays, sampled separately).
 Exit code 1 if any test fails. Old code for comparison: `git -C <repo> archive <ref> | tar -x -C /tmp/bq-old` and run with `--dir /tmp/bq-old`.
 
 ## How it works

@@ -1,5 +1,9 @@
 // Tiny DOM helpers.
 
+// Pause before moving on after a right answer. The browser test suite sets window.__bqFastAdvance
+// to shorten these waits (a wrong answer always waits for a button, so it is never affected).
+export const advanceDelay = ms => (window.__bqFastAdvance ? Math.min(ms, 300) : ms);
+
 export function h(tag, props = {}, ...children) {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(props || {})) {

@@ -1,5 +1,5 @@
 // Math Quest: skill map and practice sessions.
-import { h, modal, toast } from '../ui.js';
+import { h, modal, toast, advanceDelay } from '../ui.js';
 import { screen, stars, sessionFrame, resultsView, cheer, praise, tierList, TIER_NAMES, starText } from '../views/common.js';
 import { profile, save } from '../store.js';
 import { SKILLS, UNITS, skillById, isReached, suggestedSkill, diagnose, checkAnswer, answerText } from './skills.js';
@@ -202,7 +202,7 @@ export function viewPlay({ mode, skill: skillId, tier: tierParam }) {
       if (ok) {
         fb.replaceChildren(h('div', { class: 'fb good' }, `✅ ${praise()}`));
         onKey = null;
-        setTimeout(go, 1000);
+        setTimeout(go, advanceDelay(1000));
         return;
       }
       const nextBtn = h('button', { class: 'btn big', onclick: go }, 'Got it ›');

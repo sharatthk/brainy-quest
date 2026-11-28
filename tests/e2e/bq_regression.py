@@ -49,6 +49,8 @@ class Flow:
         self.base = FAKE_ORIGIN if args.dir else args.base
         self.ctx = browser.new_context(service_workers='block', accept_downloads=True, **VIEWPORTS[vp])
         self.ctx.add_init_script(ORACLE['init'])
+        if not args.real_delays:  # shorten the pause after a right answer (js/ui.js advanceDelay)
+            self.ctx.add_init_script('window.__bqFastAdvance = true;')
         if args.dir:
             root = pathlib.Path(args.dir).resolve()
             self.ctx.route(FAKE_ORIGIN + '**', lambda r: serve_dir(r, root))
@@ -120,8 +122,9 @@ class Flow:
     def overflow(self, label):
         # Measure the settled layout: let finite CSS animations (e.g. the 0.25s card slide-in) finish first.
         try:
+            # The buddy's hop and speech bubble are overlays (their overflow is sampled separately), so skip them.
             self.page.wait_for_function("() => !document.getAnimations().some(a => a.playState === 'running' && a.effect && "
-                                        "Number.isFinite(a.effect.getComputedTiming().endTime))", timeout=1500)
+                                        "Number.isFinite(a.effect.getComputedTiming().endTime) && !a.effect.target?.closest?.('.pal, .buddy-body'))", timeout=1500)
         except Exception:
             pass
         sw = self.page.evaluate('document.documentElement.scrollWidth')
@@ -146,6 +149,11 @@ class Flow:
     # --- question cards: mark the current one, then wait for a different one (or the results)
     def mark(self, sel='.stage .q-card'):
         self.page.evaluate("s => { const c = [...document.querySelectorAll(s)].pop(); if (c) c.dataset.seen = '1'; }", sel)
+
+    def wait_good(self, sel='.stage .q-card', timeout=3000):
+        """After a right answer: the marked card shows ✅, or it already moved on (fast advance) to a new card or results."""
+        self.page.wait_for_function("s => document.querySelector('.results') || [...document.querySelectorAll(s)].some(c => c.dataset.seen ? c.querySelector('.fb.good') : true)",
+                                    arg=sel, timeout=timeout)
 
     def wait_next(self, sel='.stage .q-card', timeout=8000):
         self.page.wait_for_function("s => document.querySelector('.results') || [...document.querySelectorAll(s)].some(c => !c.dataset.seen)",
@@ -299,7 +307,7 @@ def play_math_session(f, wrong=(), skill=None, tier=None, max_q=40, on_wrong=Non
                     on_wrong(f, card, o)
                 card.get_by_role('button', name='Got it ›').click()
             else:
-                card.locator('.fb.good').wait_for(timeout=3000)
+                f.wait_good()
         f.wait_next()
         i += 1
     f.check(f.done(), f'session did not reach results after {i} questions')
@@ -547,7 +555,7 @@ def t_math_non_column(f):
                         f.shot(f'{sid}-wrong')
                     card.get_by_role('button', name='Got it ›').click()
                 else:
-                    card.locator('.fb.good').wait_for(timeout=3000)
+                    f.wait_good()
                 f.wait_next()
     for want in ('choice', 'division', 'fraction', 'input'):
         f.check(want in kinds, f'no {want} question was exercised (kinds seen: {sorted(kinds)})')
@@ -604,7 +612,7 @@ def t_speed(f):
     for k in range(3):
         f.mark(sel)
         o = math_answer(f, sel=sel, tier=3)
-        f.page.locator(sel).last.locator('.fb.good').wait_for(timeout=3000)
+        f.wait_good(sel)
         f.wait_next(sel)
     score = int(f.page.locator('.sp-score').inner_text())
     f.check(score >= 90, f'score after 3 right ★★★ answers is {score}')
@@ -713,11 +721,13 @@ def play_eng(f, unit=None, wrong=(), warmup=False, seen=None, max_q=30, subject=
             card.locator('.fb.bad').wait_for(timeout=3000)
             t = card.locator('.fb.bad').inner_text()
             f.check('The answer' in t, f'english miss does not show the answer: {t!r}')
+            if not warmup and i >= 2:  # by the 3rd question at least 2 questions are already done or unused
+                f.check(card.locator('.worked-ex').count() == 2, f'lesson miss shows {card.locator(".worked-ex").count()} worked examples, expected 2')
             if i == wrong[0]:
                 f.shot('eng-wrong')
             card.get_by_role('button', name='Got it ›').click()
         else:
-            card.locator('.fb.good').wait_for(timeout=3000)
+            f.wait_good()
         f.wait_next()
         i += 1
     f.check(f.done(), 'english quiz did not finish')
@@ -807,7 +817,7 @@ def t_english(f):
             break
         f.mark()
         eng_answer(f, unit='one-many')
-        card.locator('.fb.good').wait_for(timeout=3000)
+        f.wait_good()
         f.wait_next()
     f.goto('/english')
 
@@ -885,7 +895,7 @@ def t_spelling(f):
             missed = w
         else:
             spell_type(f, w)
-            card.locator('.fb.good').wait_for(timeout=3000)
+            f.wait_good()
             if f.page.locator('.stage .q-tag', has_text='Second try').count():
                 f.check(w == missed, 'second-try word is not the missed word')
         f.wait_next('.stage .spell-card')
@@ -909,7 +919,7 @@ def t_spelling(f):
         f.mark('.stage .spell-card')
         if right < 10:
             spell_type(f, w)
-            card.locator('.fb.good').wait_for(timeout=3000)
+            f.wait_good()
             right += 1
             if right == 10:
                 f.page.locator('.toast', has_text='earned').wait_for(timeout=3000)
@@ -1067,7 +1077,7 @@ def t_persistence_routes(f):
     for _ in range(3):
         f.mark()
         math_answer(f, skill='basic-count', tier=1)
-        f.page.locator('.stage .fb.good').wait_for(timeout=3000)
+        f.wait_good()
         f.wait_next()
     before = cur_profile(f)
     f.check(before['coins'] >= 3 and before['xp'] >= 6, f'coins/xp not awarded: {before["coins"]}/{before["xp"]}')
@@ -1229,7 +1239,7 @@ def t_new_math(f):
                 f.check(card.locator('.fb.bad').count() == 1, f'{sid}★{tier}: wrong answer did not wait for Got it')
                 card.get_by_role('button', name='Got it ›').click()
             else:
-                card.locator('.fb.good').wait_for(timeout=3000)
+                f.wait_good()
             f.wait_next()
     # + and − are stacked; big × and ÷ use K / M symbols
     f.goto('/math/play/practice/big-addsub/3', wait='.stage .q-card')
@@ -1243,7 +1253,7 @@ def t_new_math(f):
     f.check('6M' in card.inner_text(), 'big-number hint (6M or 6 million) missing')
     card.get_by_label('answer', exact=True).fill(f"{int(o['answer'] // 1_000_000)}M")
     card.get_by_label('answer', exact=True).press('Enter')
-    card.locator('.fb.good').wait_for(timeout=3000)
+    f.wait_good()
 
 
 def t_middle_math(f):
@@ -1268,7 +1278,7 @@ def t_middle_math(f):
                 f.check(card.locator('.fb.bad').count() == 1, f'{sid}★{tier}: wrong answer did not wait for Got it')
                 card.get_by_role('button', name='Got it ›').click()
             else:
-                card.locator('.fb.good').wait_for(timeout=3000)
+                f.wait_good()
             f.wait_next()
     # A negative answer typed with a minus sign is accepted
     f.goto('/math/play/practice/int-add/1', wait='.stage .q-card')
@@ -1276,7 +1286,7 @@ def t_middle_math(f):
     card = f.page.locator('.stage .q-card').last
     card.get_by_label('answer', exact=True).fill(str(o['answer']))
     card.get_by_label('answer', exact=True).press('Enter')
-    card.locator('.fb.good').wait_for(timeout=3000)
+    f.wait_good()
 
 
 def t_quests_stickers(f):
@@ -1478,6 +1488,7 @@ def main():
     ap.add_argument('--parallel', action='store_true', help='run the two viewports in parallel processes')
     ap.add_argument('--shots', default=str(HERE / 'shots'), help='screenshot folder (default: ./shots)')
     ap.add_argument('--headed', action='store_true')
+    ap.add_argument('--real-delays', action='store_true', help='keep the real pause after right answers (default: shortened to 300 ms)')
     ap.add_argument('--json', help='write results to this JSON file')
     args = ap.parse_args()
     if not args.base.endswith('/'):
@@ -1500,6 +1511,8 @@ def main():
             for k in ('base', 'dir', 'only', 'shots'):
                 if getattr(args, k):
                     cmd += [f'--{k}', getattr(args, k)]
+            if args.real_delays:
+                cmd.append('--real-delays')
             procs.append((subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True), out))
         for p, out in procs:
             for line in p.stdout:

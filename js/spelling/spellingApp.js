@@ -1,5 +1,5 @@
 // Spelling Bee: spaced-repetition practice, Bee Challenge (3 lives), word hive, list import.
-import { h, modal, toast, onEnter } from '../ui.js';
+import { h, modal, toast, onEnter, advanceDelay } from '../ui.js';
 import { screen, sessionFrame, resultsView, cheer, praise, stars, starText, TIER_NAMES } from '../views/common.js';
 import { profile, save, getState } from '../store.js';
 import { BUILTIN_LISTS } from './words.js';
@@ -261,7 +261,7 @@ export function viewPractice({ list: listId, tier: tierParam }) {
           award({ coins: gain, xp: 3 });
           cheer(c, gain, combo);
           fb.replaceChildren(h('div', { class: 'fb good' }, `✅ ${praise()} `, h('b', {}, item.word.w)));
-          setTimeout(go, 1300);
+          setTimeout(go, advanceDelay(1300));
         } else {
           combo = 0;
           sfx.wrong();
@@ -362,7 +362,7 @@ export function viewChallenge({ list: listId, tier: tierParam }) {
           award({ coins: gain, xp: 3 });
           cheer(c, gain, streak);
           fb.replaceChildren(h('div', { class: 'fb good' }, `✅ Correct! `, h('b', {}, word.w)));
-          setTimeout(go, 1100);
+          setTimeout(go, advanceDelay(1100));
         } else {
           lives--;
           save();

@@ -79,13 +79,14 @@ export function genIntAddSub(rng, level = 1) {
   return int(big(`${neg(a)} − ${paren(b)} = ?`), a - b, [`Subtracting is adding the opposite: ${neg(a)} − ${paren(b)} = ${neg(a)} + ${paren(-b)}.`, `= ${neg(a - b)}.`]);
 }
 
+const nz2 = (rng, lo, hi) => until(() => randInt(rng, lo, hi), x => Math.abs(x) >= 2); // no 0, 1 or −1
 export function genIntMulDiv(rng, level = 1) {
-  const a = nz(rng, -12, 12), b = nz(rng, -12, 12);
+  const [a, b] = until(() => [nz2(rng, -12, 12), nz2(rng, -12, 12)], ([x, y]) => x < 0 || y < 0);
   const sign = 'Same signs give a positive answer; different signs give a negative answer.';
   if (level === 1) return int(big(`${neg(a)} × ${paren(b)} = ?`), a * b, [sign, `${Math.abs(a)} × ${Math.abs(b)} = ${Math.abs(a * b)}, so the answer is ${neg(a * b)}.`]);
   if (level === 2) return int(big(`${neg(a * b)} ÷ ${paren(b)} = ?`), a, [sign, `${Math.abs(a * b)} ÷ ${Math.abs(b)} = ${Math.abs(a)}, so the answer is ${neg(a)}.`]);
   const c = pick([-2, 2, -3, 3, -4, 4], rng);
-  const [x, y] = until(() => [nz(rng, -9, 9), nz(rng, -9, 9)], ([p, q]) => (p * q) % c === 0);
+  const [x, y] = until(() => [nz2(rng, -9, 9), nz2(rng, -9, 9)], ([p, q]) => (p * q) % c === 0 && Math.abs((p * q) / c) >= 2);
   const v = (x * y) / c;
   return int(big(`${neg(x)} × ${paren(y)} ÷ ${paren(c)} = ?`), v, [`Left to right: ${neg(x)} × ${paren(y)} = ${neg(x * y)}.`, `${neg(x * y)} ÷ ${paren(c)} = ${neg(v)}.`]);
 }
@@ -117,7 +118,7 @@ export function genMultiple(rng, level = 1) {
     return num(`One bus comes every <b>${a} minutes</b> and another every <b>${b} minutes</b>. They both just left. In how many minutes will they leave together again?`, lcm(a, b),
       ['"Together again" means a common multiple: find the least common multiple.', `Multiples of ${a}: ${Array.from({ length: lcm(a, b) / a }, (_, i) => a * (i + 1)).join(', ')}. The first one ${b} also divides is ${lcm(a, b)}.`]);
   }
-  const [a, b] = until(() => [randInt(rng, 2, level === 1 ? 6 : 12), randInt(rng, 2, level === 1 ? 6 : 12)], ([x, y]) => x !== y && lcm(x, y) !== Math.max(x, y));
+  const [a, b] = until(() => [randInt(rng, 2, level === 1 ? 8 : 12), randInt(rng, 2, level === 1 ? 8 : 12)], ([x, y]) => x !== y && lcm(x, y) !== Math.max(x, y) && (level > 1 || lcm(x, y) <= 40));
   const m = lcm(a, b);
   return num(`What is the <b>least common multiple</b> of ${big(a)} and ${big(b)}?`, m,
     [`Count by ${Math.max(a, b)}s: ${Array.from({ length: m / Math.max(a, b) }, (_, i) => Math.max(a, b) * (i + 1)).join(', ')}.`, `The first one that ${Math.min(a, b)} also divides is ${m}.`]);
@@ -269,14 +270,14 @@ export function genPower(rng, level = 1) {
     return num(big(`${sup(b, e)} = ?`), b ** e, [`The small ${e} is the exponent: it says how many ${b}s to multiply. It is not ${b} × ${e}.`, `${sup(b, e)} = ${Array(e).fill(b).join(' × ')}.`, `Multiply step by step: ${Array.from({ length: e - 1 }, (_, i) => `${b ** (i + 1)} × ${b} = ${b ** (i + 2)}`).join(', then ')}. So ${sup(b, e)} = ${b ** e}.`]);
   }
   if (level === 2) {
-    const [b, e] = pick([[10, randInt(rng, 2, 6)], [5, 3], [3, 4], [2, 6], [4, 3], [11, 2], [12, 2], [7, 2], [9, 3]], rng);
+    const [b, e] = pick([[10, randInt(rng, 2, 7)], [5, 3], [5, 4], [3, 4], [3, 5], [2, 5], [2, 6], [2, 7], [4, 3], [6, 3], [7, 3], [8, 3], [11, 2], [12, 2], [13, 2], [15, 2], [20, 2], [9, 3]], rng);
     return num(big(`${sup(b, e)} = ?`), b ** e, [`${Array(e).fill(b).join(' × ')} = ${fmt(b ** e)}.`, b === 10 ? `Shortcut: 10 to the power ${e} is 1 followed by ${e} zeros.` : `Multiply one step at a time.`]);
   }
   if (rng() < 0.5) {
-    const b = randInt(rng, 2, 5), e = pick([2, 3], rng), v = (-b) ** e;
+    const b = randInt(rng, 2, 9), e = pick([2, 3], rng), v = (-b) ** e;
     return int(big(`(−${b})<sup>${e}</sup> = ?`), v, [`(−${b})<sup>${e}</sup> = ${Array(e).fill(`(−${b})`).join(' × ')}.`, `An ${e === 2 ? 'even' : 'odd'} number of negatives gives a ${e === 2 ? 'positive' : 'negative'} answer: ${neg(v)}.`]);
   }
-  const [a, b] = [randInt(rng, 2, 3), randInt(rng, 2, 4)];
+  const [a, b] = [randInt(rng, 2, 3), randInt(rng, 2, 7)];
   return num(big(`${sup(2, a + 1)} × ${sup(3, 2)} − ${sup(b, 2)} = ?`), 2 ** (a + 1) * 9 - b * b, [`Work out the powers first: ${2 ** (a + 1)} × 9 − ${b * b}.`, `${2 ** (a + 1) * 9} − ${b * b} = ${2 ** (a + 1) * 9 - b * b}.`]);
 }
 
@@ -310,8 +311,8 @@ export function genRoot(rng, level = 1) {
     return num(big(`√${r * r} = ?`), r, [`√ asks: which number times itself makes ${r * r}?`, `Try ${r}: ${r} × ${r} = ${r * r}. That works.`, `So √${r * r} = ${r}.`]);
   }
   if (level === 2) {
-    if (rng() < 0.5) { const r = randInt(rng, 2, 6); return num(big(`∛${r ** 3} = ?`), r, [`∛ asks: which number used 3 times in a multiplication makes ${r ** 3}?`, `Try ${r}: ${r} × ${r} = ${r * r}, and ${r * r} × ${r} = ${r ** 3}.`, `So ∛${r ** 3} = ${r}.`]); }
-    const r = randInt(rng, 11, 15);
+    if (rng() < 0.5) { const r = randInt(rng, 2, 10); return num(big(`∛${r ** 3} = ?`), r, [`∛ asks: which number used 3 times in a multiplication makes ${r ** 3}?`, `Try ${r}: ${r} × ${r} = ${r * r}, and ${r * r} × ${r} = ${r ** 3}.`, `So ∛${r ** 3} = ${r}.`]); }
+    const r = randInt(rng, 11, 20);
     return num(big(`√${r * r} = ?`), r, [`√ asks: which number times itself makes ${r * r}?`, `It is more than 10 × 10 = 100, so try numbers above 10.`, `${r} × ${r} = ${r * r}, so √${r * r} = ${r}.`]);
   }
   const n = until(() => randInt(rng, 5, 140), x => !Number.isInteger(Math.sqrt(x)));
@@ -381,8 +382,8 @@ export function genArea(rng, level = 1) {
 }
 
 export function genCircle(rng, level = 1) {
-  const r = randInt(rng, 2, 10);
-  if (level === 1) return dec(`A circle has a <b>diameter of ${2 * r} cm</b>. What is its <b>circumference</b>? (Use π = 3.14)`, 3.14 * 2 * r, ['Circumference = π × diameter.', `3.14 × ${2 * r} = ${round2(3.14 * 2 * r)}.`], { suffix: 'cm' });
+  const r = randInt(rng, 2, 20);
+  if (level === 1) return dec(`A circle has a <b>diameter of ${2 * r} cm</b>. What is its <b>circumference</b>? (Use π = 3.14)`, 3.14 * 2 * r, ['Circumference is the distance around the circle. It is always a bit more than 3 diameters: π × diameter.', `3.14 × ${2 * r} = ${round2(3.14 * 2 * r)}.`], { suffix: 'cm' });
   if (level === 2) return dec(`A circle has a <b>radius of ${r} m</b>. What is its <b>area</b>? (Use π = 3.14)`, 3.14 * r * r, ['Area = π × radius × radius.', `3.14 × ${r} × ${r} = ${round2(3.14 * r * r)}.`], { suffix: 'm²' });
   return dec(`A round table is <b>${2 * r} feet across</b>. What is the area of its top? (Use π = 3.14)`, 3.14 * r * r, [`The radius is half of ${2 * r}: ${r}.`, `Area = 3.14 × ${r} × ${r} = ${round2(3.14 * r * r)}.`], { suffix: 'ft²' });
 }
@@ -398,9 +399,12 @@ export function genVolume(rng, level = 1) {
   return dec(`A can has a <b>radius of ${r} cm</b> and a <b>height of ${h} cm</b>. What is its volume? (Use π = 3.14)`, 3.14 * r * r * h, ['Volume of a cylinder = π × r × r × height.', `3.14 × ${r} × ${r} × ${h} = ${round2(3.14 * r * r * h)}.`], { suffix: 'cm³' });
 }
 
-const TRIPLES = [[3, 4, 5], [5, 12, 13], [8, 15, 17], [7, 24, 25], [6, 8, 10], [9, 12, 15], [12, 16, 20], [20, 21, 29]];
+// Whole-number right triangles: the basic triples and their multiples (hypotenuse up to 65).
+const BASE_TRIPLES = [[3, 4, 5], [5, 12, 13], [8, 15, 17], [7, 24, 25], [20, 21, 29], [9, 40, 41], [12, 35, 37], [11, 60, 61]];
+const TRIPLES = BASE_TRIPLES.flatMap(([a, b, c]) => Array.from({ length: Math.floor(65 / c) }, (_, k) => [a * (k + 1), b * (k + 1), c * (k + 1)]));
 export function genPythag(rng, level = 1) {
-  const [a, b, c] = pick(level === 1 ? TRIPLES.slice(0, 5) : TRIPLES, rng);
+  const t = pick(level === 1 ? TRIPLES.filter(x => x[2] <= 30) : TRIPLES, rng);
+  const [a, b, c] = rng() < 0.5 ? t : [t[1], t[0], t[2]];
   if (level === 1) return num(`A right triangle has legs of <b>${a}</b> and <b>${b}</b>. How long is the <b>hypotenuse</b>?`, c, ['a² + b² = c².', `${a * a} + ${b * b} = ${c * c}, and √${c * c} = ${c}.`]);
   if (level === 2) return num(`A right triangle has a leg of <b>${a}</b> and a hypotenuse of <b>${c}</b>. How long is the other leg?`, b, ['a² + b² = c², so b² = c² − a².', `${c * c} − ${a * a} = ${b * b}, and √${b * b} = ${b}.`]);
   return num(`A <b>${c} ft</b> ladder leans on a wall. Its foot is <b>${a} ft</b> from the wall. How high up the wall does it reach?`, b, ['The wall, ground and ladder make a right triangle; the ladder is the hypotenuse.', `${c}² − ${a}² = ${c * c} − ${a * a} = ${b * b}, and √${b * b} = ${b}.`], { suffix: 'ft' });
@@ -450,9 +454,14 @@ export function genProb(rng, level = 1) {
     return { kind: 'fraction', prompt: `A bag has <b>${r} red</b>, <b>${b} blue</b>${g ? ` and <b>${g} green</b>` : ''} marbles. What is the probability of picking <b>red</b>?`, answer: { n: r, d: t }, steps: [`Probability = ways to win ÷ all possible = ${r} ÷ ${t}.`, `So it is ${r}/${t}.`] };
   }
   if (level === 2) {
-    const want = pick(['an even number', 'a number greater than 4', 'a 6', 'a number less than 3'], rng);
-    const n = { 'an even number': 3, 'a number greater than 4': 2, 'a 6': 1, 'a number less than 3': 2 }[want];
-    return { kind: 'fraction', prompt: `You roll a fair number cube (1 to 6). What is the probability of rolling <b>${want}</b>?`, answer: { n, d: 6 }, steps: [`There are 6 possible rolls, and ${n} of them ${n === 1 ? 'is' : 'are'} ${want}.`, `So it is ${n}/6.`] };
+    const k = randInt(rng, 2, 5);
+    const [want, wins] = pick([
+      ['an even number', [2, 4, 6]], ['an odd number', [1, 3, 5]], [`a ${k}`, [k]], [`a number greater than ${k}`, [1, 2, 3, 4, 5, 6].filter(v => v > k)],
+      [`a number less than ${k}`, [1, 2, 3, 4, 5, 6].filter(v => v < k)], ['a multiple of 3', [3, 6]], [`${k} or ${k + 1}`, [k, k + 1]], [`a number that is not ${k}`, [1, 2, 3, 4, 5, 6].filter(v => v !== k)],
+    ], rng);
+    const n = wins.length;
+    return { kind: 'fraction', prompt: `You roll a fair number cube (1 to 6). What is the probability of rolling <b>${want}</b>?`, answer: { n, d: 6 },
+      steps: ['Probability = winning rolls ÷ all possible rolls.', `There are 6 possible rolls. The winning ones are ${wins.join(', ')}: that is ${n}.`, `So it is ${n}/6${gcd(n, 6) > 1 ? ` (the same as ${n / gcd(n, 6)}/${6 / gcd(n, 6)})` : ''}.`] };
   }
   if (rng() < 0.5) {
     const d = pick([4, 5, 8, 10], rng), n = randInt(rng, 1, d - 1);
@@ -494,7 +503,7 @@ export function genSlope(rng, level = 1) {
 }
 
 export function genLinear(rng, level = 1) {
-  const m = level === 1 ? randInt(rng, 2, 6) : nz(rng, -5, 6), b = randInt(rng, -9, 9), x = randInt(rng, level === 1 ? 0 : -5, 8);
+  const m = level === 1 ? randInt(rng, 2, 6) : nz(rng, -5, 6), b = nz(rng, -9, 9), x = randInt(rng, level === 1 ? 2 : -5, 8);
   const rule = `y = ${m === 1 ? '' : m === -1 ? '−' : neg(m)}${X} ${b < 0 ? '−' : '+'} ${Math.abs(b)}`;
   if (level === 1) return int(`If ${big(rule)}, what is y when ${big(`${X} = ${x}`)}?`, m * x + b, [`Put ${x} in for x: ${m} × ${x} ${b < 0 ? '−' : '+'} ${Math.abs(b)}.`, `${m * x} ${b < 0 ? '−' : '+'} ${Math.abs(b)} = ${neg(m * x + b)}.`]);
   if (level === 2) return int(`If ${big(rule)}, what is x when ${big(`y = ${neg(m * x + b)}`)}?`, x, [`${neg(m * x + b)} = ${neg(m)}x ${b < 0 ? '−' : '+'} ${Math.abs(b)}.`, `Undo the ${b < 0 ? '−' : '+'} ${Math.abs(b)}: ${neg(m)}x = ${neg(m * x)}. Divide by ${neg(m)}: x = ${neg(x)}.`]);

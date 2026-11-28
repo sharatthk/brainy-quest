@@ -10,7 +10,7 @@ description: Run the Brainy Quest end-to-end browser regression suite (every gam
 ## Run
 
 1. Serve the app from the repo root if nothing is on port 8777: `python3 -m http.server 8777` (in the background).
-2. Run the whole suite (about 11 minutes, so run it in the background):
+2. Run the whole suite (about 10 minutes, so run it in the background):
    ```sh
    cd tests/e2e && /usr/bin/python3 bq_regression.py --parallel
    ```

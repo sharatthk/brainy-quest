@@ -1,6 +1,7 @@
 // Lesson subjects (English, Science, Coding): lesson cards, star-tier quizzes and mistake review.
 // One engine for every subject in js/lessons/subjects.js; each keeps its progress in p[subject.id].
-import { h, onEnter } from '../ui.js';
+import { h, onEnter, advanceDelay } from '../ui.js';
+import { lessonExamples } from './examples.js';
 import { screen, stars, sessionFrame, resultsView, cheer, praise, tierList, starText } from '../views/common.js';
 import { profile, save } from '../store.js';
 import { cleanWord, normalizeText } from '../english/content.js';
@@ -149,10 +150,10 @@ export function lessonViews(subj) {
         settle(item, ok, anchor);
         if (ok) {
           fb.replaceChildren(h('div', { class: 'fb good' }, `✅ ${praise()}`, q.e ? h('p', { class: 'fb-hint' }, q.e) : null));
-          setTimeout(go, 1500);
+          setTimeout(go, advanceDelay(1500));
         } else {
           const btn = h('button', { class: 'btn big', onclick: go }, 'Got it ›');
-          fb.replaceChildren(h('div', { class: 'fb bad' }, h('p', { class: 'fb-title' }, `The answer: ${Array.isArray(q.a) ? q.a.join(', ') : q.a}`), q.e ? h('p', { class: 'fb-hint' }, `💡 ${q.e}`) : null, h('div', { class: 'row center' }, btn)));
+          fb.replaceChildren(h('div', { class: 'fb bad' }, h('p', { class: 'fb-title' }, `The answer: ${Array.isArray(q.a) ? q.a.join(', ') : q.a}`), q.e ? h('p', { class: 'fb-hint' }, `💡 ${q.e}`) : null, examplesBlock(item), h('div', { class: 'row center' }, btn)));
           btn.focus();
           onKey = e => e.key === 'Enter' && go();
         }
@@ -217,6 +218,23 @@ export function lessonViews(subj) {
         inp.focus();
       }
       card.append(fb);
+    }
+
+    // Two more questions from the unit, solved (never ones still to come in this quiz).
+    function examplesBlock(item) {
+      const coming = items.slice(i + 1).filter(it => it.unit === item.unit).map(it => it.idx);
+      const exs = lessonExamples(item.unit, item.idx, coming);
+      if (!exs.length) return null;
+      const marked = s => s.split(/\[\[(.+?)\]\]/).map((part, k) => (k % 2 ? h('b', { class: 'ex-ans' }, part) : part));
+      return h('div', { class: 'worked' },
+        h('p', { class: 'ex-title' }, `👀 ${exs.length === 1 ? 'One more example' : `${exs.length} more examples`} like this one`),
+        exs.map((ex, k) => h('div', { class: 'worked-ex' },
+          h('p', { class: 'ex-label' }, `Example ${k + 1}`),
+          h('p', { class: 'ex-q' }, ex.prompt),
+          ex.code ? h('pre', { class: 'code-block' }, h('code', {}, ex.code)) : null,
+          ex.sentence ? h('p', { class: 'ex-sentence' }, marked(ex.sentence)) : null,
+          ex.sentence ? null : h('p', { class: 'ex-answer' }, 'Answer: ', h('b', { class: 'ex-ans' }, ex.answer)),
+          ex.why ? h('p', { class: 'ex-why' }, ex.why) : null)));
     }
 
     function settle(item, ok, anchor) {

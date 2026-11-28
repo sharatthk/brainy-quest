@@ -211,3 +211,26 @@ test('science lab covers every section and its warm-ups are valid', async () => 
     }
   }
 });
+
+test('a missed lesson question gets 2 solved examples from its unit, never ones still to come', async () => {
+  const { SUBJECTS } = await import('../js/lessons/subjects.js');
+  const { lessonExamples, solved } = await import('../js/lessons/examples.js');
+  const rng = seeded(8);
+  for (const subj of SUBJECTS) {
+    for (const u of subj.units) {
+      const items = quizItems(u, 2, rng);
+      items.forEach((it, k) => {
+        const coming = items.slice(k + 1).map(x => x.idx);
+        const exs = lessonExamples(u, it.idx, coming, rng);
+        assert.ok(exs.length === Math.min(2, u.questions.length - 1 - coming.length), `${u.id}: ${exs.length} examples`);
+        for (const ex of exs) {
+          assert.ok(ex.idx !== it.idx && !coming.includes(ex.idx), `${u.id}: example gives away a coming question`);
+          assert.ok(ex.answer && ex.prompt, `${u.id}: example is solved`);
+          if (ex.sentence) assert.match(ex.sentence, /\[\[.+?\]\]/, `${u.id}: answer is marked in the sentence`);
+        }
+      });
+    }
+  }
+  assert.deepEqual(solved({ t: 'fill', q: 'Q', s: 'Fish can ___ fast.', a: ['swim'] }).sentence, 'Fish can [[swim]] fast.');
+  assert.equal(solved({ t: 'tap', q: 'Q', s: 'The frog jumps.', a: ['frog'] }).sentence, 'The [[frog]] jumps.');
+});
