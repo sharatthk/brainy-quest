@@ -1,0 +1,31 @@
+# After every GitHub Pages build, check that each main screen of the live site loads without errors
+# (tests/e2e/bq_regression.py --smoke, about a minute with setup). Can also be run by hand from the Actions tab.
+name: Live smoke check
+
+on:
+  page_build:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Playwright
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Wait for the new build to reach the CDN
+        run: sleep 45
+      - name: Smoke check the live site
+        run: python tests/e2e/bq_regression.py --base https://sharatthk.github.io/brainy-quest/ --smoke --parallel --shots smoke-shots
+      - name: Keep screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-shots
+          path: smoke-shots
