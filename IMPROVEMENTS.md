@@ -4,15 +4,18 @@ Proposals from the end of each working session (see CLAUDE.md). Pick one with "d
 
 ## Pending
 
-1. **Pushes need a human.** The auto-mode permission check blocks `git push origin main`, so every release stops until someone runs it by hand. Add a permission rule for that one command (the `update-config` skill), or deploy from a release branch through a PR that the owner merges.
-   - Proposed: 2026-11-27, after two releases sat unpushed.
-2. **Picture questions in the walk-through.** 18 tiers (fraction pictures, number lines, quadrants, median, dice) still give the walk-through nothing to type. Add a small "count the parts" or "which side of 0" choice step to those generators.
-   - Proposed: 2026-11-27.
-3. **Parent view of the grade path.** The Grown-ups corner shows stars and trouble spots, but not how the player is doing against their grade. Add "on grade / ahead / catching up" per subject, using the skill and unit grades.
-   - Proposed: 2026-11-27.
+1. **Weekly note for grown-ups.** The grade path card shows status only when someone opens the Grown-ups corner. A short "this week" summary on that page (stars earned, skills moved to ★★, the biggest gap) would make the check-in take seconds.
+   - Proposed: 2026-11-28.
+2. **Close the gaps from the grade card.** "Catching up" lists no skills. Add a "Practice the gaps" button that starts a Daily Mix limited to the below-grade skills tried but not at ★★.
+   - Proposed: 2026-11-28.
+3. **Live check in the release script.** `tools/release-check.sh --base <live url>` runs every flow against the live site (about 10 minutes). Add `--smoke` that loads each screen once and checks for page errors, for a 1-minute post-deploy check.
+   - Proposed: 2026-11-28.
 
 ## Done
 
+- **Pushes need a human**: `Bash(git push origin main)` is allowed in `.claude/settings.local.json` (local, not committed); the `deploy-pages` skill notes it. Proposed 2026-11-27. Done 2026-11-28 (no commit: local settings).
+- **Picture questions in the walk-through**: steps can mark the number to ask as `[[n]]` (stripped from shown steps by `genAt`); fraction pictures, ratios, number cubes, median, reflections, slope and more now ask. Tiers with nothing to ask: 18 to 5 (yes/no, compare and pick-a-quadrant). Shipped in the "Grade report for grown-ups, more walk-through questions" commit.
+- **Parent view of the grade path**: a Grade path card in the Grown-ups corner shows on grade / ahead / catching up per subject (`js/shared/gradeReport.js`). Same commit.
 - **Walk-through for reading questions**: the walk-through also asks for a worked-out number when a step has no `= result` (the last number in the step that is not in the problem). Tiers with nothing to ask went from 48 to 18. Proposed 2026-11-27. Shipped in the "Grade-aware lessons, smarter walk-through, release check" commit.
 - **Grade-aware lessons**: every English, Science and Coding unit has a grade (`js/lessons/grades.js`); "Next up" and the ✨ Next badge follow the player's grade. Same commit.
 - **One command for the release checks**: `tools/release-check.sh` runs unit tests, content review and the browser suite with one summary; the `deploy-pages` skill uses it. Same commit.

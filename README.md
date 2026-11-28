@@ -76,5 +76,5 @@ You can still add your own lists with **Spelling Bee → Import word list** (one
 - `js/shared/`: mastery and spaced repetition, rewards, achievements, speech, sound, confetti
 - `js/shared/quests.js`, `js/shared/stickers.js`: daily quests and the sticker book (pure, unit tested); `js/views/progressCards.js` renders the home quests card, the results card and the sticker book
 - `tools/content-review.mjs`: content checks (the `content-review` skill); `tools/release-check.sh`: unit tests, content review and the browser suite with one summary
-- `js/lessons/grades.js`: the grade of every lesson unit and the "Next up" rule
+- `js/lessons/grades.js`: the grade of every lesson unit and the "Next up" rule; `js/shared/gradeReport.js`: on grade / ahead / catching up per subject for the Grown-ups corner
 - `js/shared/buddy.js`, `js/shared/chest.js`: buddy stages, mood, reactions, gear and the chest roll (pure, unit tested); `js/views/buddy.js`, `js/views/chest.js` render them

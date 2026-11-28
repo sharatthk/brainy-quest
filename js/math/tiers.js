@@ -243,7 +243,12 @@ export const TIERS = {
 };
 
 export const tiersOf = skill => TIERS[skill.id];
-export const genAt = (skill, tier, rng = Math.random) => TIERS[skill.id][tier - 1].gen(rng);
+// Steps may mark the number the walk-through should ask for as [[4]]; shown steps never contain the marks.
+export const genAt = (skill, tier, rng = Math.random) => {
+  const p = TIERS[skill.id][tier - 1].gen(rng);
+  if (!p.steps?.some(st => st.includes('[['))) return p;
+  return { ...p, walkSteps: p.steps, steps: p.steps.map(st => st.replace(/\[\[(.+?)\]\]/g, '$1')) };
+};
 export const tierLabel = (skill, tier) => TIERS[skill.id][tier - 1].label;
 
 // Every skill must have exactly three tiers (checked at load so a new skill can't be forgotten).

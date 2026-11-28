@@ -83,7 +83,7 @@ function reviewMath() {
         if (!String(p.prompt).includes('class="frac"') && /(^|[^\d.])[01] [×÷]|[×÷] \(?−?[01]\)?(?![\d.])|[+−] 0(?![\d.])/.test(txt)) trivial++;
         if (p.kind !== 'column' && !String(p.prompt).includes('stack-sum') && /^\d[\d,.]*\s*[+−]\s*\d[\d,.]*\s*= \?$/.test(txt)) inline++;
         if (s.unit === 'big' && /[×÷]/.test(txt) && /\d{1,3},\d{3},\d{3}/.test(txt)) longBig++;
-        if (p.kind !== 'column' && !(p.steps || []).some(st => stepBlank(st, givenNumbers(p)))) noResult++;
+        if (p.kind !== 'column' && !(p.walkSteps || p.steps || []).some(st => stepBlank(st, givenNumbers(p)))) noResult++;
         if (shown.length < SHOW) shown.push(p);
       }
       if (thin > SAMPLES * 0.5) warn(where, `${thin}/${SAMPLES} explanations are a single short step: add a why or a check step`);

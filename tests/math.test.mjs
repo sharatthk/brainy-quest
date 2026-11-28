@@ -308,6 +308,9 @@ test('walk-through: each step is split at the result after its last "="', async 
   assert.equal(stepBlank('Look at the tens first: 51 has 5 tens and 44 has 4 tens.', givenNumbers(cmp)).expect, '4', 'no "=": the last number not in the problem');
   assert.equal(stepBlank('Both 51 and 44 are 2-digit numbers.', givenNumbers(cmp)), null, 'only problem numbers and tiny counts: nothing to ask');
   assert.ok(givenNumbers({ prompt: 'Is <b>14</b> a solution of <span>x < 12</span>?' }).has(12), 'a raw < is not a tag');
+  assert.deepEqual(stepBlank('Count the shaded parts: [[3]] are shaded, out of [[4]].'), { before: 'Count the shaded parts: ', expect: '3', after: ' are shaded, out of 4.' }, 'a [[mark]] picks what to ask');
+  const fr = genAt(skillById('frac-id'), 1, seeded(1));
+  assert.ok(fr.walkSteps.some(st => st.includes('[[')) && fr.steps.every(st => !st.includes('[[')), 'shown steps never contain [[marks]]');
   assert.ok(sameNumber('1200', '1,200') && sameNumber('-5', '−5') && sameNumber('2.5', '$2.50') && !sameNumber('', '0') && !sameNumber('13', '12'));
   // Every step of every tier renders as plain text (no HTML), so the walk-through can show it.
   const r = seeded(12);

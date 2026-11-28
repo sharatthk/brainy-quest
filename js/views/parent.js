@@ -3,7 +3,9 @@ import { h, toast, onEnter } from '../ui.js';
 import { screen, stars } from './common.js';
 import { profile, save, getState, exportData, importData, deleteProfile } from '../store.js';
 import { SKILLS, UNITS } from '../math/skills.js';
-import { GRADES, gradeName, playerGrade } from '../math/grades.js';
+import { GRADES, gradeName, playerGrade, gradeOf } from '../math/grades.js';
+import { unitGrade } from '../lessons/grades.js';
+import { gradeStatus } from '../shared/gradeReport.js';
 import { SUBJECTS } from '../lessons/subjects.js';
 import { book } from '../lessons/lessonApp.js';
 import { recentAccuracy, cardStatus } from '../shared/mastery.js';
@@ -38,6 +40,22 @@ export function viewParent() {
     h('div', { class: 'stat-row' },
       stat('Level', levelOf(p.xp)), stat('Streak', `${currentStreak(p)} days`), stat('Best streak', `${p.streak.best} days`),
       stat('Sessions', p.stats.sessions), stat('Questions', p.stats.answered), stat('Accuracy', `${acc}%`))));
+
+  // Grade path: on grade, ahead or catching up, per subject
+  const g = playerGrade(p);
+  const subjects = [
+    { title: '🧮 Math', items: SKILLS.map(s => ({ grade: gradeOf(s), ...(p.math.skills[s.id] || {}) })) },
+    ...SUBJECTS.map(subj => ({ title: `${subj.emoji} ${subj.title}`, items: subj.units.map(u => ({ grade: unitGrade(u), ...(book(p, subj).units[u.id] || {}) })) })),
+  ];
+  main.append(h('section', { class: 'card grade-report' },
+    h('h3', {}, `🎒 Grade path${g ? `: ${gradeName(g)}` : ''}`),
+    g ? h('ul', { class: 'grade-rows' }, subjects.map(({ title, items }) => {
+      const r = gradeStatus(items, g);
+      return h('li', {},
+        h('div', { class: 'grade-row-top' }, h('b', {}, title), h('span', { class: `grade-chip ${r.status}` }, r.label)),
+        h('p', { class: 'muted small' }, `${gradeName(g)}: ${r.onDone} of ${r.onTotal} at ★★ · above grade: ${r.aboveDone} · earlier gaps: ${r.gaps}`));
+    })) : h('p', { class: 'muted' }, 'Pick a grade in Settings below to see how each subject compares with it.'),
+    g ? h('p', { class: 'muted small' }, 'On grade: working at their grade. Ahead: ★★ on 2 or more skills above it, or all of this grade done. Catching up: 2 or more skills from earlier grades tried but not at ★★ yet.') : null));
 
   // Trouble spots
   const errors = {};
@@ -87,7 +105,7 @@ export function viewParent() {
   const rate = h('input', { type: 'range', min: 0.5, max: 1.2, step: 0.05, value: p.settings.rate, 'aria-label': 'Speaking speed', onchange: e => { p.settings.rate = Number(e.target.value); save(); speak('beautiful'); } });
   const goalSel = h('select', { 'aria-label': 'Daily goal', onchange: e => { p.settings.dailyGoal = Number(e.target.value); save(); } },
     [30, 60, 100, 150].map(v => h('option', { value: v, selected: v === p.settings.dailyGoal ? true : null }, `${v} XP (${{ 30: 'light', 60: 'regular', 100: 'serious', 150: 'intense' }[v]})`)));
-  const gradeSel = h('select', { 'aria-label': 'Grade', onchange: e => { p.settings.grade = Number(e.target.value); save(); } },
+  const gradeSel = h('select', { 'aria-label': 'Grade', onchange: e => { p.settings.grade = Number(e.target.value); save(); rerender(); } },
     [0, ...GRADES].map(g => h('option', { value: g, selected: g === playerGrade(p) ? true : null }, gradeName(g))));
   main.append(h('section', { class: 'card stack' }, h('h3', {}, '⚙️ Settings'),
     toggle('Sound effects', p.settings.sound, v => { p.settings.sound = v; save(); }),

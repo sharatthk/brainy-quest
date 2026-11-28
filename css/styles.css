@@ -161,6 +161,14 @@ section + section, .card + .card { margin-top: 1rem; }
 .quest-head h2 { margin: 0; }
 .grade-pick { white-space: nowrap; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; background: var(--card); border-radius: 999px; padding: 0.3rem 0.4rem 0.3rem 0.9rem; box-shadow: var(--shadow); }
 .grade-pick select { font: inherit; font-weight: 600; border: 2px solid var(--line); border-radius: 999px; padding: 0.2rem 0.5rem; background: var(--bg2); color: var(--ink); }
+.grade-rows { list-style: none; margin: 0.4rem 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.grade-rows li { padding: 0.5rem 0; border-bottom: 1px solid var(--line); }
+.grade-row-top { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.grade-chip.new, .grade-chip.unset { background: transparent; box-shadow: inset 0 0 0 2px var(--line); color: var(--muted); }
+.grade-chip { display: inline-block; padding: 0.1rem 0.6rem; border-radius: 999px; font-weight: 800; font-size: 0.85rem; white-space: nowrap; background: var(--bg2); }
+.grade-chip.ahead { background: var(--good-bg); color: var(--good); }
+.grade-chip.on-grade { background: color-mix(in srgb, var(--brand) 18%, transparent); color: var(--ink); }
+.grade-chip.catching-up { background: var(--warn-bg, #fff4d6); color: var(--ink); }
 .grade-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem; }
 .grade-chips button { min-width: 3.2rem; padding: 0.35rem 0.6rem; border-radius: 999px; border: 2px solid var(--line); background: var(--card); color: var(--ink); font-weight: 700; }
 .grade-chips button[aria-pressed="true"] { border-color: var(--brand); background: var(--brand); color: #fff; }

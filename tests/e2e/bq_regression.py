@@ -1069,8 +1069,16 @@ def t_shop_trophies_parent(f):
     f.page.get_by_label('answer').fill(str(int(m[1]) * int(m[2])))
     f.page.get_by_role('button', name='Enter').click()
     f.wait_text("Max's progress")
-    for s in ['Trouble spots', 'Math skills', 'Word Wizard units', 'Science Lab units', 'Code Club units', 'Spelling lists', 'Settings', 'Download backup']:
+    for s in ['Grade path', 'Trouble spots', 'Math skills', 'Word Wizard units', 'Science Lab units', 'Code Club units', 'Spelling lists', 'Settings', 'Download backup']:
         f.check(s in f.text(), f'grown-ups page lacks "{s}"')
+    f.check('Pick a grade in Settings' in f.page.locator('.grade-report').inner_text(), 'grade report without a grade does not ask for one')
+    f.page.get_by_label('Grade', exact=True).select_option('3')
+    f.page.wait_for_selector('.grade-report .grade-rows')
+    rows = f.page.locator('.grade-report .grade-rows li')
+    f.check(rows.count() == 4, f'grade report has {rows.count()} subject rows, expected 4')
+    f.check(f.page.locator('.grade-report .grade-chip').count() == 4, 'grade report rows lack a status')
+    f.shot('parent-grade')
+    f.page.get_by_label('Grade', exact=True).select_option('0')
     f.shot('parent')
     with f.page.expect_download() as dl:
         f.page.get_by_role('button', name='⬇️ Download backup').click()

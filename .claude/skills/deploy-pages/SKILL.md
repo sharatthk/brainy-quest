@@ -9,7 +9,7 @@ Live site: https://sharatthk.github.io/brainy-quest/ (GitHub Pages, legacy build
 
 1. **Test**: `tools/release-check.sh` (unit tests, content review and the full browser suite, about 10 minutes; run it in the background) must print PASS on all three lines. Look at the screenshots of changed screens (the `regression-test` skill).
 2. **Commit on `main`** (this repo commits straight to main; Pages publishes from it). Stage only app files (`README.md css js tests tools index.html sw.js manifest.webmanifest .claude/skills CLAUDE.md` as relevant), never `private/` or `.claude/worktrees/`. Message: a short title plus bullets of what changed for players. Do not add a co-author line.
-3. **Push**: `git push origin main`.
+3. **Push**: `git push origin main` (allowed for this repo in `.claude/settings.local.json`; if it is blocked on another machine, ask the user to run `! git push origin main`).
 4. **Wait for the build** of that commit:
    ```sh
    sha=$(git rev-parse --short HEAD)

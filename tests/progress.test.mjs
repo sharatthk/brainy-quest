@@ -64,3 +64,15 @@ test('quest goals follow the player grade', () => {
     assert.equal(b.goal, def.goals[def.goals.length - 1]);
   }
 });
+
+test('grade report: on grade, ahead, catching up', async () => {
+  const { gradeStatus } = await import('../js/shared/gradeReport.js');
+  const it = (grade, stars = 0, attempts = 0) => ({ grade, stars, attempts });
+  assert.equal(gradeStatus([it(3)], 0).status, 'unset');
+  assert.equal(gradeStatus([it(3), it(4)], 4).status, 'new');
+  assert.equal(gradeStatus([it(4, 2, 10), it(4, 0, 3), it(3)], 4).status, 'on-grade');
+  assert.equal(gradeStatus([it(4, 1, 5), it(5, 2, 10), it(6, 2, 10)], 4).status, 'ahead');
+  assert.equal(gradeStatus([it(4, 2, 10), it(4, 2, 10)], 4).status, 'ahead', 'all on-grade done');
+  const r = gradeStatus([it(2, 1, 8), it(3, 0, 4), it(4, 0, 2)], 4);
+  assert.deepEqual([r.status, r.gaps, r.onDone, r.onTotal], ['catching-up', 2, 0, 1]);
+});

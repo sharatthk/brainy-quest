@@ -50,7 +50,7 @@ export function genIntLine(rng, level = 1) {
 export function genIntAbs(rng, level = 1) {
   if (level === 1) {
     const a = nz(rng, -40, 40);
-    return int(`What is ${big(`|${neg(a)}|`)}?`, Math.abs(a), [`Absolute value is the distance from 0, and distance is never negative.`, `${neg(a)} is ${Math.abs(a)} steps from 0.`]);
+    return int(`What is ${big(`|${neg(a)}|`)}?`, Math.abs(a), [`Absolute value is the distance from 0, and distance is never negative.`, `${neg(a)} is [[${Math.abs(a)}]] steps from 0.`]);
   }
   if (level === 2) {
     const a = nz(rng, -20, 20), b = nz(rng, -20, 20), add = rng() < 0.5;
@@ -163,7 +163,7 @@ export function genRatio(rng, level = 1) {
     const [[e1, n1], [e2, n2]] = shuffle(THINGS, rng).slice(0, 2), a = randInt(rng, 2, 6), b = until(() => randInt(rng, 2, 6), x => x !== a);
     const ans = `${a} : ${b}`;
     return choice(`${e1.repeat(a)} ${e2.repeat(b)}<br>What is the ratio of <b>${n1}</b> to <b>${n2}</b>?`, shuffle([ans, `${b} : ${a}`, `${a} : ${a + b}`, `${b} : ${a + b}`], rng), ans,
-      [`Count ${n1} first (${a}), then ${n2} (${b}). The order matters: ${ans}.`]);
+      [`Count the ${n1} first: [[${a}]].`, `Then count the ${n2}: [[${b}]].`, `The order matters, ${n1} first: ${ans}.`]);
   }
   if (level === 2) {
     const a = randInt(rng, 1, 7), b = until(() => randInt(rng, 2, 9), x => x !== a && gcd(a, x) === 1), k = randInt(rng, 2, 8);
@@ -347,7 +347,7 @@ export function genInequality(rng, level = 1) {
   const ans = `x ${op} ${x}`;
   const flip = { '>': '<', '<': '>', '≥': '≤', '≤': '≥' }[op];
   return choice(`Solve ${big(`${left} ${op} ${a * x + b}`)}`, shuffle([...new Set([ans, `x ${flip} ${x}`, `x ${op} ${a * x + 2 * b}`, `x ${op} ${x + 1}`])], rng), ans,
-    [`Take away ${b} from both sides: ${a > 1 ? `${a}x` : 'x'} ${op} ${a * x}.`, a > 1 ? `Divide both sides by ${a}: x ${op} ${x}.` : `So x ${op} ${x}.`]);
+    [`Take away ${b} from both sides: ${a * x + b} − ${b} = ${a * x}, so ${a > 1 ? `${a}x` : 'x'} ${op} ${a * x}.`, a > 1 ? `Divide both sides by ${a}: x ${op} ${x}.` : `So x ${op} ${x}.`]);
 }
 
 // ---------------- Geometry ----------------
@@ -366,7 +366,7 @@ export function genAngles(rng, level = 1) {
     return num(`A triangle has angles of <b>${a}°</b> and <b>${b}°</b>. What is the third angle?`, 180 - a - b, ['The angles of a triangle add up to 180°.', `180 − ${a} − ${b} = ${180 - a - b}.`], { suffix: '°' });
   }
   const a = randInt(rng, 25, 155);
-  return num(`Two lines cross. One angle is <b>${a}°</b>. What is the angle <b>vertical</b> (opposite) to it?`, a, ['Vertical angles are opposite each other where two lines cross, and they are always equal.', `So it is also ${a}°.`], { suffix: '°' });
+  return num(`Two lines cross. One angle is <b>${a}°</b>. What is the angle <b>vertical</b> (opposite) to it?`, a, ['Vertical angles are opposite each other where two lines cross, and they are always equal.', `So it is also [[${a}]]°.`], { suffix: '°' });
 }
 
 export function genArea(rng, level = 1) {
@@ -436,7 +436,7 @@ export function genStats(rng, level = 1) {
     const n = pick([5, 7, 6], rng);
     const xs = until(() => Array.from({ length: n }, () => randInt(rng, 1, 40)), v => n % 2 === 1 || (([...v].sort((p, q) => p - q)[n / 2 - 1] + [...v].sort((p, q) => p - q)[n / 2]) % 2 === 0));
     const s = [...xs].sort((p, q) => p - q), med = n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2;
-    return num(`What is the <b>median</b> of ${big(xs.join(', '))}?`, med, [`Put them in order: ${s.join(', ')}.`, n % 2 ? `The middle one is ${med}.` : `Two middle numbers: ${s[n / 2 - 1]} and ${s[n / 2]}. Their mean is ${med}.`]);
+    return num(`What is the <b>median</b> of ${big(xs.join(', '))}?`, med, [`Put them in order: ${s.join(', ')}.`, n % 2 ? `The middle one is [[${med}]].` : `Two middle numbers: ${s[n / 2 - 1]} and ${s[n / 2]}. Their mean is ${med}.`]);
   }
   if (rng() < 0.5) {
     const xs = Array.from({ length: 6 }, () => randInt(rng, 2, 50));
@@ -461,7 +461,7 @@ export function genProb(rng, level = 1) {
     ], rng);
     const n = wins.length;
     return { kind: 'fraction', prompt: `You roll a fair number cube (1 to 6). What is the probability of rolling <b>${want}</b>?`, answer: { n, d: 6 },
-      steps: ['Probability = winning rolls ÷ all possible rolls.', `There are 6 possible rolls. The winning ones are ${wins.join(', ')}: that is ${n}.`, `So it is ${n}/6${gcd(n, 6) > 1 ? ` (the same as ${n / gcd(n, 6)}/${6 / gcd(n, 6)})` : ''}.`] };
+      steps: ['Probability = winning rolls ÷ all possible rolls.', `There are 6 possible rolls. The winning ones are ${wins.join(', ')}: that is [[${n}]].`, `So it is ${n}/6${gcd(n, 6) > 1 ? ` (the same as ${n / gcd(n, 6)}/${6 / gcd(n, 6)})` : ''}.`] };
   }
   if (rng() < 0.5) {
     const d = pick([4, 5, 8, 10], rng), n = randInt(rng, 1, d - 1);
@@ -486,14 +486,14 @@ export function genPoints(rng, level = 1) {
   const overX = rng() < 0.5, ans = overX ? `(${neg(x)}, ${neg(-y)})` : `(${neg(-x)}, ${neg(y)})`;
   return choice(`Reflect ${big(`(${neg(x)}, ${neg(y)})`)} over the <b>${overX ? 'x' : 'y'}-axis</b>. Where does it land?`,
     shuffle([ans, `(${neg(-x)}, ${neg(-y)})`, overX ? `(${neg(-x)}, ${neg(y)})` : `(${neg(x)}, ${neg(-y)})`, `(${neg(y)}, ${neg(x)})`].filter((v, i, a) => a.indexOf(v) === i), rng), ans,
-    [overX ? 'Flipping over the x-axis keeps x and changes the sign of y.' : 'Flipping over the y-axis keeps y and changes the sign of x.', `So it lands at ${ans}.`]);
+    [overX ? `Flipping over the x-axis keeps x and changes the sign of y: ${neg(y)} becomes [[${neg(-y)}]].` : `Flipping over the y-axis keeps y and changes the sign of x: ${neg(x)} becomes [[${neg(-x)}]].`, `So it lands at ${ans}.`]);
 }
 
 export function genSlope(rng, level = 1) {
   if (level === 3) {
     const m = nz(rng, -6, 6), b = nz(rng, -9, 9), askSlope = rng() < 0.5;
     return int(`In ${big(`y = ${m === 1 ? '' : m === -1 ? '−' : neg(m)}${X} ${b < 0 ? '−' : '+'} ${Math.abs(b)}`)}, what is the <b>${askSlope ? 'slope' : 'y-intercept'}</b>?`, askSlope ? m : b,
-      ['In y = mx + b, m is the slope and b is the y-intercept (where the line crosses the y-axis).', askSlope ? `The slope is ${neg(m)}.` : `The y-intercept is ${neg(b)}.`]);
+      ['In y = mx + b, m is the slope and b is the y-intercept (where the line crosses the y-axis).', askSlope ? `The slope is the number in front of x: [[${neg(m)}]].` : `The y-intercept is the number added at the end: [[${neg(b)}]].`]);
   }
   const m = level === 1 ? randInt(rng, 1, 5) : nz(rng, -5, 5);
   const x1 = randInt(rng, -5, 3), y1 = randInt(rng, -5, 5), dx = randInt(rng, 1, 4);

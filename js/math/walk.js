@@ -18,6 +18,11 @@ export function givenNumbers(pr) {
 // First choice: the result after its last "=". Otherwise the last number that is not in the problem
 // (like the 4 in "47 has 4 tens"), so even compare and pick problems get something to work out.
 export function stepBlank(text, given = null) {
+  const mark = text.match(/\[\[(.+?)\]\]/); // the generator chose what to ask
+  if (mark) {
+    const clean = s => s.replace(/\[\[(.+?)\]\]/g, '$1');
+    return { before: clean(text.slice(0, mark.index)), expect: mark[1], after: clean(text.slice(mark.index + mark[0].length)) };
+  }
   const at = (index, num) => ({ before: text.slice(0, index), expect: num, after: text.slice(index + num.length) });
   const rx = new RegExp(`= (${NUM})`, 'g');
   let m, last = null;
@@ -49,14 +54,15 @@ export function runWalk(container, pr, onDone) {
   const given = givenNumbers(pr);
 
   function show() {
-    if (idx >= pr.steps.length) return onDone({ mistakes });
-    const text = pr.steps[idx];
+    const steps = pr.walkSteps || pr.steps;
+    if (idx >= steps.length) return onDone({ mistakes });
+    const text = steps[idx];
     const b = stepBlank(text, given);
     const li = h('li', { class: 'walk-step' });
     list.append(li);
     if (!b) {
       const ok = h('button', { class: 'btn small', onclick: () => { ok.remove(); idx++; show(); } }, 'Next step ›');
-      li.append(h('span', {}, text), ' ', ok);
+      li.append(h('span', {}, text.replace(/\[\[(.+?)\]\]/g, '$1')), ' ', ok);
       ok.focus();
       return;
     }

@@ -478,7 +478,7 @@ export function genFracId(rng, dens = [2, 3, 4, 5, 6, 8]) {
   return {
     kind: 'choice', prompt: 'What fraction is shaded?', visual: viz, fracChoices: true,
     choices: shuffle([...opts].slice(0, 4), rng), answer: correct,
-    steps: [`There are ${d} equal parts in all (the bottom number), and ${n} ${n === 1 ? 'is' : 'are'} shaded (the top number). So it's ${n}/${d}.`],
+    steps: [`Count all the equal parts: there are [[${d}]]. That is the bottom number.`, `Count the shaded parts: [[${n}]] ${n === 1 ? 'is' : 'are'} shaded. That is the top number.`, `So it's ${n}/${d}.`],
   };
 }
 
@@ -506,11 +506,11 @@ export function genFracCompare(rng, types = ['sameD', 'sameN', 'equal']) {
   if (type === 'sameD') {
     d1 = d2 = randInt(rng, 3, 12);
     [n1, n2] = until(() => [randInt(rng, 1, d1 - 1), randInt(rng, 1, d1 - 1)], ([x, y]) => x !== y);
-    why = `Same bottom number (${d1}), so the pieces are the same size. More pieces is bigger: compare ${n1} and ${n2}.`;
+    why = `Same bottom number (${d1}), so the pieces are the same size. More pieces is bigger: ${n1} or ${n2} pieces, the bigger is [[${Math.max(n1, n2)}]].`;
   } else if (type === 'sameN') {
     n1 = n2 = randInt(rng, 1, 4);
     [d1, d2] = until(() => [randInt(rng, n1 + 1, 12), randInt(rng, n1 + 1, 12)], ([x, y]) => x !== y);
-    why = `Same top number (${n1}). A bigger bottom number means smaller pieces, so ${n1}/${Math.min(d1, d2)} is the bigger fraction.`;
+    why = `Same top number (${n1}). A bigger bottom number means smaller pieces, so the smaller bottom number wins: ${d1} or ${d2}, the smaller is [[${Math.min(d1, d2)}]]. ${n1}/${Math.min(d1, d2)} is the bigger fraction.`;
   } else if (type === 'multiple') {
     const b = randInt(rng, 2, 6), k = randInt(rng, 2, 3), D = b * k, a = randInt(rng, 1, b - 1);
     const m = until(() => randInt(rng, 1, D - 1), x => x !== a * k);
