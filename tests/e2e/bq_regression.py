@@ -311,15 +311,20 @@ def check_wrong_feedback(f, card, o):
     t = fb.inner_text()
     f.check(f'The answer is {o["answerText"]}' in t, f'wrong-answer feedback lacks "The answer is {o["answerText"]}": {t!r}')
     f.check(card.locator('.how li').count() == len(o['steps']) and o['steps'], 'wrong-answer feedback lacks the solution steps')
+    f.check('You answered' in t, 'wrong-answer feedback does not say what the kid answered')
+    ex = card.locator('.worked-ex')
+    f.check(ex.count() == 2 and all(ex.nth(k).locator('.ex-steps li').count() for k in range(ex.count())), f'wrong-answer feedback has {ex.count()} worked examples, expected 2 with steps')
     btn = card.get_by_role('button', name='Got it ›')
     f.check(btn.is_visible(), 'no "Got it" button after a wrong answer')
     f.shot('wrong-feedback')
     f.page.wait_for_timeout(2500)
     f.check(btn.is_visible() and card.locator('.fb.bad').count(), '"Got it" did not wait: the miss left the screen on its own')
-    # The Got it button must be reachable: not covered by anything.
+    # The Got it button must be reachable: not covered by anything (it sits under the worked examples, so scroll to it).
+    btn.scroll_into_view_if_needed()
+    f.page.wait_for_timeout(300)
     box = btn.bounding_box()
     hit = f.page.evaluate("([x, y]) => { const e = document.elementFromPoint(x, y); return e && e.closest('button')?.textContent; }",
-                          [box['x'] + box['width'] / 2, box['y'] + box['height'] / 2 - f.page.evaluate('scrollY')])
+                          [box['x'] + box['width'] / 2, box['y'] + box['height'] / 2])  # bounding_box is viewport-relative
     f.check(hit and 'Got it' in hit, f'"Got it" button is covered by another element (hit: {hit!r})')
 
 
@@ -443,6 +448,16 @@ def t_math_map(f):
     f.check('🔒' not in f.text(), 'a locked tile is shown')
     f.check(f.page.locator('button.skill[disabled]').count() == 0, 'a skill tile is disabled')
     f.check(f.page.locator('.next-badge').count() >= 1, 'no ✨ Next badge')
+    # Grade path: a 5th grader skips Math Basics and starts Addition further along
+    f.page.select_option('.grade-pick select', '5')
+    f.page.wait_for_timeout(300)
+    basics = f.page.locator('section.unit').first
+    f.check(basics.locator('.next-badge').count() == 0, '5th grade: Math Basics still has a ✨ Next badge')
+    add_next = f.page.locator('section.unit', has_text='Addition').locator('.skill.suggested .skill-title').all_inner_texts()
+    f.check(add_next and '2-digit' not in add_next[0], f'5th grade: Addition suggests {add_next}, expected a 3 or 4-digit skill')
+    f.shot('map-grade5')
+    f.check(cur_profile(f)['settings'].get('grade') == 5, 'grade was not saved on the player')
+    f.page.select_option('.grade-pick select', '0')
     for k, (sid, title) in enumerate(from_js['skills']):
         f.goto('/math')
         f.page.locator('button.skill').nth(k).click()
@@ -495,7 +510,7 @@ def t_math_practice_tiers(f):
     f.check(cur_profile(f)['math']['skills'][sid]['stars'] == 2, 'stars changed after a failed ★★★ run')
 
 
-NON_COLUMN = ['basic-count', 'basic-skip', 'basic-bonds', 'num-place', 'num-round', 'word-add-sub', 'mul-facts',
+NON_COLUMN = ['basic-count', 'basic-add', 'basic-sub', 'basic-skip', 'basic-bonds', 'num-place', 'num-round', 'word-add-sub', 'mul-facts',
               'div-2x1', 'div-2x1r', 'div-3x2', 'frac-id', 'frac-equiv', 'frac-compare', 'frac-add', 'frac-of',
               'dec-place', 'dec-add', 'pct-intro', 'pct-of']
 
@@ -1216,6 +1231,11 @@ def t_new_math(f):
             else:
                 card.locator('.fb.good').wait_for(timeout=3000)
             f.wait_next()
+    # + and − are stacked; big × and ÷ use K / M symbols
+    f.goto('/math/play/practice/big-addsub/3', wait='.stage .q-card')
+    f.check(f.page.locator('.stage .q-card .q-prompt .stack-sum').count() == 1, 'big-addsub is not written one number below the other')
+    f.goto('/math/play/practice/big-muldiv/3', wait='.stage .q-card')
+    f.check(re.search(r'\d[KM] × \d+[KM]', f.page.locator('.stage .q-card .q-prompt').inner_text()), 'big-muldiv ★★★ does not use K / M symbols')
     # Big answers can be typed as 5M
     f.goto('/math/play/practice/big-addsub/1', wait='.stage .q-card')
     o = math_oracle(f, skill='big-addsub', tier=1)
@@ -1359,6 +1379,45 @@ TESTS = [
 ]
 
 
+# Which flows cover which files, for --changed. First match wins; a file matching nothing runs everything.
+MATH = ['math_map', 'math_practice_tiers', 'math_non_column', 'math_coach_mix_gym', 'speed', 'new_math', 'middle_math']
+LESSONS = ['english', 'lesson_subjects']
+AFFECTS = [
+    (r'^(README\.md|IMPROVEMENTS\.md|CLAUDE\.md|\.claude/|tools/|tests/[^/]+\.test\.mjs$|tests/e2e/(README\.md|shots/))', []),
+    (r'^js/math/middle\.js$', ['math_map', 'middle_math']),
+    (r'^js/math/(speed)\.js$', ['speed']),
+    (r'^js/math/(column|guided)\.js$', ['math_practice_tiers', 'math_coach_mix_gym']),
+    (r'^js/math/grades\.js$', ['math_map', 'math_coach_mix_gym', 'shop_trophies_parent', 'quests_stickers']),
+    (r'^js/math/', MATH),
+    (r'^js/(english|lessons|science|coding)/', LESSONS),
+    (r'^js/spelling/', ['spelling']),
+    (r'^js/shared/(quests|stickers)\.js$', ['quests_stickers']),
+    (r'^js/(shared/(buddy|chest)|views/(buddy|chest))\.js$', ['buddy_gear_chest']),
+    (r'^js/views/(shop|parent|syncCard)\.js$', ['shop_trophies_parent']),
+    (r'^js/shared/(achievements|rewards)\.js$', ['shop_trophies_parent', 'quests_stickers']),
+    (r'^js/views/(home|progressCards)\.js$', ['profiles', 'quests_stickers']),
+    (r'^js/sync/', ['persistence_routes']),
+    (r'^tests/e2e/oracle\.js$', MATH + LESSONS),
+]
+
+
+def changed_tests(ref):
+    """Test names covering the files changed since `ref` (plus uncommitted and untracked files)."""
+    root = HERE.parent.parent
+    git = lambda *a: subprocess.run(['git', '-C', str(root), *a], capture_output=True, text=True, check=True).stdout.split()
+    files = sorted(set(git('diff', '--name-only', ref) + git('ls-files', '--others', '--exclude-standard')))
+    names, why = [], {}
+    for path in files:
+        hit = next((tests for rx, tests in AFFECTS if re.search(rx, path)), None)
+        if hit is None:  # css, index.html, ui.js, store.js, router.js, the runner itself...: everything
+            return [n for n, _ in TESTS], files, {path: 'all'}
+        for n in hit:
+            why.setdefault(n, path)
+            if n not in names:
+                names.append(n)
+    return [n for n, _ in TESTS if n in names], files, why
+
+
 # ---------------------------------------------------------------- runner
 
 def run_viewport(args, vp):
@@ -1414,6 +1473,8 @@ def main():
     ap.add_argument('--dir', help='serve this folder on http://bq.test/ through request interception instead of --base')
     ap.add_argument('--viewport', choices=['phone', 'desktop', 'all'], default='all')
     ap.add_argument('--only', help='comma-separated test names: ' + ','.join(n for n, _ in TESTS))
+    ap.add_argument('--changed', nargs='?', const='HEAD', metavar='REF',
+                    help='quick mode: only the flows that cover files changed since REF (default HEAD, i.e. uncommitted work)')
     ap.add_argument('--parallel', action='store_true', help='run the two viewports in parallel processes')
     ap.add_argument('--shots', default=str(HERE / 'shots'), help='screenshot folder (default: ./shots)')
     ap.add_argument('--headed', action='store_true')
@@ -1421,6 +1482,13 @@ def main():
     args = ap.parse_args()
     if not args.base.endswith('/'):
         args.base += '/'
+    if args.changed:
+        names, files, why = changed_tests(args.changed)
+        if not names:
+            print(f'--changed {args.changed}: {len(files)} changed file(s), none covered by a browser flow. Nothing to run.')
+            sys.exit(0)
+        print(f'--changed {args.changed}: {len(files)} file(s) -> {",".join(names)}' + (f'  (full run: {next(iter(why))})' if 'all' in why.values() else ''), flush=True)
+        args.only = ','.join(names)
     vps = ['phone', 'desktop'] if args.viewport == 'all' else [args.viewport]
     print(f'Brainy Quest regression: {args.dir and ("dir " + args.dir + " on " + FAKE_ORIGIN) or args.base}  viewports={vps}', flush=True)
     results = []

@@ -14,6 +14,7 @@ description: Run the Brainy Quest end-to-end browser regression suite (every gam
    ```sh
    cd tests/e2e && /usr/bin/python3 bq_regression.py --parallel
    ```
+   **Quick mode** while working: `--changed` runs only the flows covering files changed since `HEAD` (uncommitted and untracked files; `--changed main~1` for another base). The file-to-flow map is `AFFECTS` in `bq_regression.py`; CSS, `ui.js`, `store.js` and unknown files run everything. Always run the full suite before deploying.
    Faster loops while fixing: `--viewport phone --only english,spelling`. Against the live site: `--base https://sharatthk.github.io/brainy-quest/`. Against another checkout or worktree without a server: `--dir /path/to/checkout`.
 3. Exit code 1 means a failure. Each line names the test, the failed check and the line in `bq_regression.py`.
 

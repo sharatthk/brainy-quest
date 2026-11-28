@@ -2,7 +2,8 @@
 import { h, modal, toast } from '../ui.js';
 import { screen, stars, sessionFrame, resultsView, cheer, praise, tierList, TIER_NAMES, starText } from '../views/common.js';
 import { profile, save } from '../store.js';
-import { SKILLS, UNITS, skillById, isReached, diagnose, checkAnswer, answerText } from './skills.js';
+import { SKILLS, UNITS, skillById, isReached, suggestedSkill, diagnose, checkAnswer, answerText } from './skills.js';
+import { GRADES, gradeName, playerGrade, belowGrade } from './grades.js';
 import { emptyRec, record, recentAccuracy, currentTier, passed, needToPass } from '../shared/mastery.js';
 import { buildQuestion, isEmptyAnswer } from './question.js';
 import { genAt, tiersOf, tierLabel } from './tiers.js';
@@ -10,7 +11,8 @@ import { runGuided } from './guided.js';
 import { award, recordAnswer, finishSession } from '../shared/rewards.js';
 import { sfx } from '../shared/sound.js';
 import { render as rerender } from '../router.js';
-import { pick } from '../shared/util.js';
+import { pick, seeded } from '../shared/util.js';
+import { workedExamples, givenText } from './examples.js';
 
 const rec = id => (profile().math.skills[id] ||= emptyRec());
 
@@ -22,7 +24,8 @@ export function viewMap() {
   const main = screen({ title: 'Math Quest', back: '#/' });
   main.append(
     h('div', { class: 'quest-head' },
-      h('div', {}, h('h2', {}, 'Pick your challenge'), h('p', { class: 'muted' }, `${totalStars} of ${SKILLS.length * 3} stars collected. Start anywhere: ✨ marks the suggested next skill.`))),
+      h('div', {}, h('h2', {}, 'Pick your challenge'), h('p', { class: 'muted' }, `${totalStars} of ${SKILLS.length * 3} stars collected. Start anywhere: ✨ marks the suggested next skill.`)),
+      gradePicker(p)),
     h('div', { class: 'quick-row' },
       h('a', { class: 'quick mix', href: '#/math/mix' }, h('span', { class: 'quick-emoji' }, '🎲'), h('span', {}, h('b', {}, 'Daily Mix'), h('small', {}, 'A smart mix of new and tricky skills'))),
       h('a', { class: 'quick gym', href: '#/math/gym' }, h('span', { class: 'quick-emoji' }, '🏋️'), h('span', {}, h('b', {}, 'Carry & Borrow Gym'), h('small', {}, 'Coach-guided column practice'))),
@@ -32,11 +35,21 @@ export function viewMap() {
     const list = SKILLS.filter(s => s.unit === u.id);
     const got = list.reduce((s, k) => s + (p.math.skills[k.id]?.stars || 0), 0);
     // Suggested next: the first skill on the path that doesn't have ★★ yet.
-    const next = list.find(s => isReached(s, p) && (p.math.skills[s.id]?.stars || 0) < 2);
+    const next = suggestedSkill(list, p);
     main.append(h('section', { class: 'unit' },
       h('h3', { class: 'unit-title' }, `${u.emoji} ${u.title}`, h('span', { class: 'unit-stars' }, `${got}/${list.length * 3} ★`)),
       h('div', { class: 'skill-grid' }, list.map(s => skillNode(s, p, s === next)))));
   }
+}
+
+// "My grade": moves the suggested starting skills, Daily Mix and quests to the player's school grade.
+export function gradePicker(p, onChange = () => rerender()) {
+  const sel = h('select', { 'aria-label': 'My grade', onchange: e => {
+    p.settings.grade = Number(e.target.value);
+    save();
+    onChange();
+  } }, [0, ...GRADES].map(g => h('option', { value: g, selected: g === playerGrade(p) ? true : null }, g ? gradeName(g) : 'Pick a grade')));
+  return h('label', { class: 'grade-pick' }, h('span', {}, '🎒 My grade'), sel);
 }
 
 function skillNode(s, p, suggested) {
@@ -75,7 +88,10 @@ function skillSheet(s) {
 const GYM = SKILLS.filter(s => s.gym);
 
 function mixPicker(p) {
-  const open = SKILLS.filter(s => isReached(s, p));
+  // Untouched skills far below the player's grade stay out of the mix (practiced ones still come back for review).
+  const reached = SKILLS.filter(s => isReached(s, p));
+  const open = reached.filter(s => !belowGrade(s, p) || p.math.skills[s.id]?.attempts);
+  if (!open.length) open.push(...reached);
   const weights = open.map(s => {
     const r = p.math.skills[s.id];
     if (!r || !r.attempts) return 4; // new frontier skill
@@ -192,13 +208,30 @@ export function viewPlay({ mode, skill: skillId, tier: tierParam }) {
       const nextBtn = h('button', { class: 'btn big', onclick: go }, 'Got it ›');
       fb.replaceChildren(h('div', { class: 'fb bad' },
         h('p', { class: 'fb-title' }, `Not quite. The answer is ${answerText(pr)}.`),
+        h('p', { class: 'fb-given' }, `You answered ${givenText(pr, val)}. Let's see how to get ${answerText(pr)}.`),
         diag ? h('p', { class: 'fb-hint' }, `💡 ${diag.hint}`) : null,
         h('details', { class: 'how', open: true }, h('summary', {}, 'How to solve it'), h('ol', {}, pr.steps.map(st => h('li', {}, st)))),
         pr.visualAfter ? h('div', { class: 'viz-wrap', html: pr.visualAfter }) : null,
+        examplesBlock(item, pr),
         h('div', { class: 'row center' }, nextBtn)));
       nextBtn.focus();
       onKey = e => e.key === 'Enter' && go();
     }
+  }
+
+  // Two more problems of the same skill and tier, solved step by step.
+  function examplesBlock(item, pr) {
+    const exs = workedExamples(item.skill, item.tier, pr, seeded((Date.now() + answered * 7919) >>> 0));
+    if (!exs.length) return null;
+    return h('div', { class: 'worked' },
+      h('p', { class: 'ex-title' }, `👀 ${exs.length === 1 ? 'One more example' : `${exs.length} more examples`} like this one`),
+      exs.map((ex, i) => h('div', { class: 'worked-ex' },
+        h('p', { class: 'ex-label' }, `Example ${i + 1}`),
+        h('div', { class: 'ex-prompt', html: ex.html }),
+        ex.problem.visual ? h('div', { class: 'viz-wrap small', html: ex.problem.visual }) : null,
+        ex.problem.kind === 'choice' ? h('p', { class: 'ex-choices' }, ex.problem.choices.map(c => h('span', { class: `ex-chip ${c === ex.problem.answer ? 'ok' : ''}` }, c))) : null,
+        ex.filled && ex.problem.kind !== 'choice' ? null : h('p', { class: 'ex-answer' }, 'Answer: ', h('b', {}, ex.answer)),
+        h('ol', { class: 'ex-steps' }, ex.steps.map(st => h('li', {}, st))))));
   }
 
   function settle(item, ok, diag, wasGuided, anchor) {

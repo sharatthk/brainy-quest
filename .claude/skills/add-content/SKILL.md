@@ -18,7 +18,9 @@ Every stage has three star tiers (★ Easy, ★★ Medium, ★★★ Hard). Ever
 2. **Skill** entry in `SKILLS` with `S(id, unit, title, emoji, requires, desc, gen, { guided?, gym? })`. New topic? Add it to `UNITS` (order = map order). Use a colorful emoji; plain symbols like ➕ render as black icons.
 3. **Tiers** in `js/math/tiers.js`: `'<id>': [T(label, gen), T(...), T(...)]`. Labels are short and concrete ("Carry from the tens", "Sums to 10"). The module throws at load if a skill lacks 3 tiers.
 4. **Tests** in `tests/math.test.mjs`: every tier is auto-checked for validity; add shape assertions to "star tiers generate exactly the shape each tier promises" (or the basics test) proving ★ < ★★ < ★★★ really differ.
-5. Sample real output before trusting it: print ~3 problems per tier with a seeded rng and read them. Watch for trivial problems (zeros, `1 × 2`, `30 ÷ 3`).
+5. Sample real output before trusting it: `node tools/content-review.mjs --skill <id> --show 3` (the `content-review` skill) prints solved samples per tier and flags trivial, repetitive or thin problems.
+6. Presentation rules: + and − are written one number below the other (`stacked(a, b, op)`, also set `nums: [a, b], op` so wrong-sign mistakes are diagnosed); Big Numbers use K / M / B symbols (`shortBig`) with the `SYMBOLS` hint line. Steps explain why, not just the arithmetic: say what the idea means, do it, then check it. A wrong answer also shows 2 worked examples generated from the same tier (`js/math/examples.js`), so every tier must produce varied problems.
+7. Give the skill a grade in `js/math/grades.js` (a unit test fails without one).
 
 ## English, Science or Coding unit
 
@@ -41,6 +43,6 @@ In `js/spelling/words.js`: an array of `[word, part of speech, definition, sente
 
 ## Finish
 
-- `node --test tests/*.test.mjs` must pass.
+- `node --test tests/*.test.mjs` and `node tools/content-review.mjs` must pass (no ERROR lines).
 - Check the new content in the browser at phone and desktop size (the `regression-test` skill), then update the README feature table if counts or sections changed.
 - No em dash characters anywhere; use a hyphen.

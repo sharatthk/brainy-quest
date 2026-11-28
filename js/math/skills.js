@@ -3,6 +3,7 @@
 import { randInt, pick, shuffle, gcd } from '../shared/util.js';
 
 import { MIDDLE_UNITS, MIDDLE_SKILLS } from './middle.js';
+import { gradeOf, playerGrade, belowGrade } from './grades.js';
 
 export const COL = ['ones', 'tens', 'hundreds', 'thousands', 'ten-thousands', 'hundred-thousands'];
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
@@ -20,6 +21,20 @@ export function until(make, ok, tries = 5000) {
 }
 
 export const frac = (n, d) => `<span class="frac"><span>${n}</span><span>${d}</span></span>`;
+
+// A + or − problem written one number below the other, places (and decimal points) lined up.
+// a and b are display strings or numbers; `answer` fills the line under the rule (default "?").
+export function stacked(a, b, op, answer = '?') {
+  const parts = [a, b, answer].map(x => String(x).split('.'));
+  const places = Math.max(...parts.slice(0, 2).map(([, f = '']) => f.length));
+  const cell = ([w, f]) => {
+    if (!places) return w;
+    const fr = f ?? '', pad = places - fr.length;
+    return `${w}${f != null ? '.' : '<span class="ghost">.</span>'}${fr}${pad > 0 ? `<span class="ghost">${'0'.repeat(pad)}</span>` : ''}`;
+  };
+  const ans = answer === '?' ? '<span class="qbox">?</span>' : cell(parts[2]);
+  return `<span class="stack-sum"><span></span><span class="sn">${cell(parts[0])}</span><span class="so">${op}</span><span class="sn">${cell(parts[1])}</span><span class="sr"></span><span></span><span class="sn sa">${ans}</span></span>`;
+}
 
 // ---------- Column arithmetic ----------
 
@@ -215,9 +230,34 @@ function mulNoCarry(a, m) {
   return fromDigitsMsFirst(out);
 }
 
+// Mistakes in typed answers that are not column problems: wrong sign, wrong number of zeros, off by one.
+function diagnoseTyped(p, given) {
+  if (p.kind !== 'input' || typeof p.answer !== 'number' || typeof given !== 'string') return null;
+  const g = p.answerType === 'big' ? parseBigNumber(given) : Number(given.trim().replace(/,/g, ''));
+  if (g == null || !Number.isFinite(g) || g === p.answer || !given.trim()) return null;
+  const close = (x, y) => Math.abs(x - y) < 1e-9;
+  if (p.nums && p.op) {
+    const [a, b] = p.nums;
+    if (p.op === '+' && close(g, a - b) || p.op === '−' && close(g, a + b)) {
+      return { tag: 'wrong-sign', hint: `Look at the sign: it is ${p.op === '+' ? '+ (add, put together)' : '− (take away)'}. You ${p.op === '+' ? 'took away' : 'added'} instead.` };
+    }
+  }
+  if (p.answer >= 1000 && g > 0) {
+    const r = p.answer / g;
+    for (const k of [10, 100, 1000, 0.1, 0.01, 0.001]) {
+      if (close(r, k)) return { tag: 'zeros', hint: `Your front digits are right, but ${k > 1 ? 'some zeros are missing' : 'there are too many zeros'}. Count the zeros carefully: the answer has ${String(p.answer).match(/0*$/)[0].length}.` };
+    }
+  }
+  if (Number.isInteger(p.answer) && Math.abs(g - p.answer) === 1 && p.answer <= 30) {
+    return { tag: 'off-by-one', hint: 'So close: you were off by just 1. Count again slowly, touching each number.' };
+  }
+  return null;
+}
+
 export function diagnose(p, given) {
+  if (p.kind !== 'column') return diagnoseTyped(p, given);
   const g = Number(String(given).replace(/[^\d]/g, ''));
-  if (!String(given).trim() || !Number.isFinite(g) || g === p.answer || p.kind !== 'column') return null;
+  if (!String(given).trim() || !Number.isFinite(g) || g === p.answer) return null;
   if (p.op === '+' && g === addNoCarry(p.a, p.b)) {
     return { tag: 'forgot-carry', hint: 'It looks like you forgot to carry. When a column adds up to 10 or more, write the ones digit and carry the 1 to the next column.' };
   }
@@ -539,12 +579,12 @@ export function genDecPlace(rng, variants = [0, 1, 2, 3]) {
   const v = pick(variants, rng);
   if (v === 0) {
     const t = randInt(rng, 1, 9);
-    return { kind: 'input', answerType: 'decimal', prompt: `Write <b>${t} tenths</b> as a decimal.`, answer: t / 10, answerText: (t / 10).toFixed(1), steps: [`Tenths are 1 place after the decimal point: ${t} tenths = 0.${t}.`] };
+    return { kind: 'input', answerType: 'decimal', prompt: `Write <b>${t} tenths</b> as a decimal.`, answer: t / 10, answerText: (t / 10).toFixed(1), steps: [`A tenth is 1 of 10 equal parts. Tenths go in the 1st place after the decimal point.`, `No whole ones, so write 0 first: ${t} tenths = 0.${t}.`] };
   }
   if (v === 1) {
     const x = randInt(rng, 1, 99);
     const s = (x / 100).toFixed(2);
-    return { kind: 'input', answerType: 'decimal', prompt: `Write <b>${x} hundredths</b> as a decimal.`, answer: x / 100, answerText: s, steps: [`Hundredths use 2 places after the decimal point: ${x} hundredths = ${s}.`] };
+    return { kind: 'input', answerType: 'decimal', prompt: `Write <b>${x} hundredths</b> as a decimal.`, answer: x / 100, answerText: s, steps: [`A hundredth is 1 of 100 equal parts. Hundredths need 2 places after the decimal point.`, x < 10 ? `${x} has only 1 digit, so put a 0 in the tenths place: ${s}.` : `Write the 2 digits after the point: ${x} hundredths = ${s}.`] };
   }
   if (v === 2) {
     const [a, b] = until(() => {
@@ -559,7 +599,7 @@ export function genDecPlace(rng, variants = [0, 1, 2, 3]) {
   }
   const d = randInt(rng, 1, 20), c = randInt(rng, 1, 99);
   const s = (d + c / 100).toFixed(2);
-  return { kind: 'input', answerType: 'decimal', prompt: `Write <b>${d} dollars and ${c} cents</b> as a decimal. $ ___`, answer: d + c / 100, answerText: s, steps: [`Dollars go before the point, cents (hundredths of a dollar) after: $${s}.`] };
+  return { kind: 'input', answerType: 'decimal', prompt: `Write <b>${d} dollars and ${c} cents</b> as a decimal. $ ___`, answer: d + c / 100, answerText: s, steps: [`Dollars are whole ones, so they go before the point: ${d}.`, `100 cents make a dollar, so cents are hundredths and fill the 2 places after the point${c < 10 ? ` (${c} cents is 0${c})` : ''}: $${s}.`] };
 }
 
 // level 1: add tenths. 2: same number of places, add or subtract. 3: different number of places.
@@ -580,7 +620,8 @@ export function genDecAdd(rng, level = 0) {
   if (px !== py) steps.push(`Line up the decimal points. Write ${px < py ? sx : sy} as ${fmtDec(px < py ? x : y, 2)} so both have 2 places.`);
   else steps.push('Line up the decimal points, one above the other.');
   steps.push(`${add ? 'Add' : 'Subtract'} like whole numbers and bring the point straight down: ${fmtDec(x, places)} ${add ? '+' : '−'} ${fmtDec(y, places)} = ${sr}.`);
-  return { kind: 'input', answerType: 'decimal', prompt: `<span class="big-num">${sx} ${add ? '+' : '−'} ${sy} = ?</span>`, answer: res / 100, answerText: sr, steps };
+  if (add) steps.push(`Check the size: ${sx} is about ${Math.round(x / 100)} and ${sy} is about ${Math.round(y / 100)}, so the answer should be about ${add ? Math.round(x / 100) + Math.round(y / 100) : Math.round(x / 100) - Math.round(y / 100)}.`);
+  return { kind: 'input', answerType: 'decimal', prompt: stacked(sx, sy, add ? '+' : '−'), nums: [x / 100, y / 100], op: add ? '+' : '−', answer: res / 100, answerText: sr, steps };
 }
 
 // variants: 0 shaded grid, 1 percent as a fraction, 2 "out of 100", 3 fraction as a percent.
@@ -592,15 +633,15 @@ export function genPctIntro(rng, variants = [0, 1, 2]) {
   }
   if (v === 0) {
     const n = randInt(rng, 3, 97);
-    return { kind: 'input', prompt: 'What <b>percent</b> of the grid is shaded?', visual: percentGrid(n), answer: n, answerText: `${n}%`, suffix: '%', steps: [`There are 100 squares and ${n} are shaded. Percent means "out of 100", so it's ${n}%.`] };
+    return { kind: 'input', prompt: 'What <b>percent</b> of the grid is shaded?', visual: percentGrid(n), answer: n, answerText: `${n}%`, suffix: '%', steps: [`Count the shaded squares: full rows are 10 each, then add the extra squares. ${n} are shaded.`, `There are 100 squares in all. Percent means "out of 100", so ${n} out of 100 is ${n}%.`] };
   }
   if (v === 1) {
     const [p, f] = pick([[50, '1/2'], [25, '1/4'], [75, '3/4'], [10, '1/10'], [20, '1/5']], rng);
     const choices = shuffle(['1/2', '1/4', '3/4', '1/10', '1/5'].filter(x => x !== f).slice(0, 3).concat(f), rng);
-    return { kind: 'choice', fracChoices: true, prompt: `<span class="big-num">${p}%</span> is the same as which fraction?`, choices, answer: f, steps: [`${p}% means ${p} out of 100 = ${p}/100, which simplifies to ${f}.`] };
+    return { kind: 'choice', fracChoices: true, prompt: `<span class="big-num">${p}%</span> is the same as which fraction?`, choices, answer: f, steps: [`${p}% means ${p} out of 100, so write it as ${p}/100.`, `Simplify: divide the top and bottom by ${gcd(p, 100)}. ${p}/100 = ${f}.`] };
   }
   const n = randInt(rng, 1, 99);
-  return { kind: 'input', prompt: `A class answered <b>${n} out of 100</b> questions right. What percent is that?`, answer: n, answerText: `${n}%`, suffix: '%', steps: [`"Out of 100" is exactly what percent means: ${n}%.`] };
+  return { kind: 'input', prompt: `A class answered <b>${n} out of 100</b> questions right. What percent is that?`, answer: n, answerText: `${n}%`, suffix: '%', steps: [`Percent means "out of 100" (per cent, like 100 cents in a dollar).`, `${n} out of 100 is ${n}%.`] };
 }
 
 export function genPctOf(rng, pcts = [10, 20, 25, 50, 75, 5]) {
@@ -616,7 +657,7 @@ export function genPctOf(rng, pcts = [10, 20, 25, 50, 75, 5]) {
     75: `25% is ${N} ÷ 4 = ${N / 4}, and 75% is three of those: ${N / 4} × 3 = ${ans}.`,
     5: `10% of ${N} is ${N / 10}, and 5% is half of that: ${ans}.`,
   }[p];
-  return { kind: 'input', prompt: `What is <span class="big-num">${p}%</span> of <span class="big-num">${N}</span>?`, answer: ans, steps: [how] };
+  return { kind: 'input', prompt: `What is <span class="big-num">${p}%</span> of <span class="big-num">${N}</span>?`, answer: ans, steps: [`${p}% means ${p} out of every 100.`, how, `Check: ${ans} is ${p === 50 ? 'half' : p > 50 ? 'more than half' : 'less than half'} of ${N}, which makes sense for ${p}%.`] };
 }
 
 const NAMES = ['Maya', 'Leo', 'Aarav', 'Zoe', 'Sam', 'Priya', 'Omar', 'Lily', 'Kai', 'Nina'];
@@ -668,14 +709,14 @@ export function genCount(rng, level = 1) {
     const n = randInt(rng, 11, 98), after = rng() < 0.5;
     return {
       kind: 'input', prompt: `What number comes <b>${after ? 'after' : 'before'}</b> <span class="big-num">${n}</span>?`, answer: after ? n + 1 : n - 1,
-      steps: [after ? `Count up one from ${n}: ${n}, ${n + 1}.` : `Count back one from ${n}: ${n}, ${n - 1}.`],
+      steps: [after ? '"After" means one more.' : '"Before" means one less.', after ? `Count up one from ${n}: ${n}, ${n + 1}.` : `Count back one from ${n}: ${n - 1}, ${n}.`, `So ${after ? n + 1 : n - 1} comes ${after ? 'after' : 'before'} ${n}.`],
     };
   }
   const [a, b] = until(() => [randInt(rng, 10, 99), randInt(rng, 10, 99)], ([x, y]) => x !== y && (Math.floor(x / 10) === Math.floor(y / 10) || Math.abs(x - y) < 15));
   const big = Math.max(a, b);
   return {
     kind: 'choice', prompt: 'Which number is <b>bigger</b>?', choices: [String(a), String(b)], answer: String(big),
-    steps: [Math.floor(a / 10) === Math.floor(b / 10) ? `Both have ${Math.floor(a / 10)} tens, so compare the ones: ${big} has more.` : `Compare the tens first: ${big} has more tens.`],
+    steps: [`Look at the tens first: ${a} has ${Math.floor(a / 10)} tens and ${b} has ${Math.floor(b / 10)} tens.`, Math.floor(a / 10) === Math.floor(b / 10) ? `The tens are the same, so compare the ones: ${big % 10} is more than ${Math.min(a, b) % 10}.` : `More tens means a bigger number, even if the ones are smaller.`, `So ${big} is bigger.`],
   };
 }
 
@@ -684,7 +725,10 @@ export function genFact(rng, { op = '+', max = 10, teen = false } = {}) {
   if (op === '+') {
     const [a, b] = until(() => [randInt(rng, 1, Math.min(9, max)), randInt(rng, 1, Math.min(9, max))], ([x, y]) => x + y <= max && (max <= 10 || x + y > 10));
     const big = Math.max(a, b), small = Math.min(a, b);
-    return { kind: 'input', prompt: `<span class="big-num">${a} + ${b} = ?</span>`, answer: a + b, steps: [`Start at the bigger number, ${big}, and count on ${small}: ${Array.from({ length: small }, (_, i) => big + i + 1).join(', ')}. So ${a} + ${b} = ${a + b}.`] };
+    return {
+      kind: 'input', prompt: stacked(a, b, '+'), nums: [a, b], op: '+', answer: a + b,
+      steps: [`Start at the bigger number, ${big}. Hold it in your head.`, `Count on ${small} more: ${Array.from({ length: small }, (_, i) => big + i + 1).join(', ')}.`, `The last number you say is the answer: ${a} + ${b} = ${a + b}.`],
+    };
   }
   const [a, b] = teen
     ? until(() => [randInt(rng, 11, 18), randInt(rng, 2, 9)], ([x, y]) => x - y < 10)
@@ -692,7 +736,7 @@ export function genFact(rng, { op = '+', max = 10, teen = false } = {}) {
   const how = teen
     ? `Take ${a - 10} away to get to 10, then ${b - (a - 10)} more: 10 − ${b - (a - 10)} = ${a - b}.`
     : `Start at ${a} and count back ${b}: ${Array.from({ length: b }, (_, i) => a - i - 1).join(', ')}.`;
-  return { kind: 'input', prompt: `<span class="big-num">${a} − ${b} = ?</span>`, answer: a - b, steps: [how, `So ${a} − ${b} = ${a - b}.`] };
+  return { kind: 'input', prompt: stacked(a, b, '−'), nums: [a, b], op: '−', answer: a - b, steps: [how, `Check by adding back: ${a - b} + ${b} = ${a}. So ${a} − ${b} = ${a - b}.`] };
 }
 
 // Number bonds: two parts that make the whole (5, 10 or 20).
@@ -707,7 +751,7 @@ export function genSkip(rng, steps = [2]) {
   const by = pick(steps, rng), start = by * randInt(rng, 0, by >= 5 ? 6 : 8), seq = Array.from({ length: 5 }, (_, i) => start + by * i);
   const hole = randInt(rng, 2, 4);
   const shown = seq.map((n, i) => `<span>${i === hole ? '<span class="qbox">?</span>' : n}${i < seq.length - 1 ? ',' : ''}</span>`).join(' ');
-  return { kind: 'input', prompt: `Count by <b>${by}s</b>: <span class="seq">${shown}</span>`, answer: seq[hole], steps: [`Each number is ${by} more than the one before: ${seq[hole - 1]} + ${by} = ${seq[hole]}.`] };
+  return { kind: 'input', prompt: `Count by <b>${by}s</b>: <span class="seq">${shown}</span>`, answer: seq[hole], steps: [`Find the jump: ${seq[1]} − ${seq[0]} = ${by}, so each number is ${by} more than the one before.`, `Add ${by} to the number before the box: ${seq[hole - 1]} + ${by} = ${seq[hole]}.`, hole < 4 ? `Check: ${seq[hole]} + ${by} = ${seq[hole + 1]}, the next number.` : `Check: ${seq[hole]} − ${by} = ${seq[hole - 1]}.`] };
 }
 
 // ---------- Big numbers (millions, billions, trillions) ----------
@@ -757,57 +801,90 @@ export function genBigRead(rng, level = 1) {
     : (d => bigAnswer(`Write <b>${b}.${d} billion</b> with digits.`, b * 1e9 + d * 1e8, ['A billion is 1 followed by 9 zeros.', `${b}.${d} billion is ${b} billion and ${fmt(d * 1e8)} more.`]))(randInt(rng, 1, 9));
 }
 
-// level 1: whole millions. 2: millions and hundred-thousands. 3: millions with thousands (5,000,000 - 250,000).
+// Short big-number symbols: 3000 -> "3K", 2500000 -> "2.5M", 4e9 -> "4B", 7e12 -> "7T".
+export function shortBig(n) {
+  for (const [v, sym] of [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']]) {
+    if (n >= v && Number.isInteger((n / v) * 100)) return `${+(n / v).toFixed(2)}${sym}`;
+  }
+  return fmt(n);
+}
+const SYMBOLS = '<span class="q-hint block">K = thousand (3 zeros), M = million (6 zeros), B = billion (9 zeros)</span>';
+const zerosOf = n => String(n).match(/0*$/)[0].length;
+
+// level 1: whole millions (3M + 2M). 2: millions and hundred-thousands. 3: millions with thousands (5,000,000 - 250,000).
 export function genBigAddSub(rng, level = 1) {
-  const add = rng() < 0.5;
-  let a, b, how;
+  const add = rng() < 0.5, op = add ? '+' : '−';
+  let a, b, steps;
   if (level === 1) {
     [a, b] = until(() => [randInt(rng, 1, 9), randInt(rng, 1, 9)], ([x, y]) => add || x > y);
     const ans = add ? a + b : a - b;
-    return bigAnswer(`<span class="big-num">${a} million ${add ? '+' : '−'} ${b} million = ?</span>`, ans * 1e6, [`Think in millions: ${a} ${add ? '+' : '−'} ${b} = ${ans}. So the answer is ${ans} million.`]);
+    return bigAnswer(`${stacked(`${a}M`, `${b}M`, op)}${SYMBOLS}`, ans * 1e6,
+      [`M means million, so you are ${add ? 'adding' : 'taking away'} whole millions.`, `Work with the numbers in front: ${a} ${op} ${b} = ${ans}.`, `Keep the M: ${ans}M, which is ${ans} million.`]);
   }
   if (level === 2) {
     [a, b] = until(() => [randInt(rng, 11, 89) * 1e5, randInt(rng, 11, 89) * 1e5], ([x, y]) => add || x > y);
-    how = `Think in hundred-thousands: ${a / 1e5} ${add ? '+' : '−'} ${b / 1e5} = ${add ? (a + b) / 1e5 : (a - b) / 1e5} hundred-thousands.`;
+    const ha = a / 1e5, hb = b / 1e5, hr = add ? ha + hb : ha - hb;
+    steps = [`Write the numbers one below the other so the places line up: millions under millions.`,
+      `Both end in 5 zeros, so count in hundred-thousands: ${ha} ${op} ${hb} = ${hr}.`,
+      `Put the 5 zeros back: ${hr} hundred-thousands = ${fmt(hr * 1e5)}.`];
   } else {
-    a = randInt(rng, 2, 9) * 1e6 + (rng() < 0.5 ? 0 : randInt(rng, 1, 9) * 1e5);
+    const A = randInt(rng, 2, 9), lo = rng() < 0.5 ? 0 : randInt(rng, 1, 9) * 1e5;
+    a = A * 1e6 + lo;
     b = randInt(rng, 1, 19) * 5e4;
-    how = add ? `Add the thousands: ${fmt(a)} + ${fmt(b)}. Line up the places carefully.` : `Take ${fmt(b)} away from ${fmt(a)}: borrow from the millions if you need to.`;
+    steps = [`Line up the places: ${fmt(b)} has no millions, so it goes under the last 6 digits of ${fmt(a)}.`];
+    if (add) {
+      const r = lo + b;
+      steps.push(`Add the part below a million: ${fmt(lo)} + ${fmt(b)} = ${fmt(r)}.`,
+        r >= 1e6 ? `That is more than a million, so carry 1 million: ${A} million becomes ${A + 1} million.` : `The ${A} million stays the same.`);
+    } else if (lo >= b) {
+      steps.push(`Take it from the part below a million: ${fmt(lo)} − ${fmt(b)} = ${fmt(lo - b)}.`, `The ${A} million stays the same.`);
+    } else {
+      steps.push(`${fmt(lo)} is too small to take ${fmt(b)} from, so borrow 1 million: ${A} million becomes ${A - 1} million.`,
+        `Now ${fmt(lo + 1e6)} − ${fmt(b)} = ${fmt(lo + 1e6 - b)}.`);
+    }
   }
-  return bigAnswer(`<span class="big-num long">${fmt(a)} ${add ? '+' : '−'} ${fmt(b)} = ?</span>`, add ? a + b : a - b, [how]);
+  return { ...bigAnswer(stacked(fmt(a), fmt(b), op), add ? a + b : a - b, steps), nums: [a, b], op };
 }
 
-// level 1: millions × or ÷ a small number. 2: tens × hundred-thousands, millions ÷ hundreds. 3: 3M × 2M (count the zeros).
+// level 1: millions × or ÷ a small number (3M × 2). 2: tens × hundred-thousands (40 × 300K), millions ÷ hundreds.
+// 3: K and M times K and M (3M × 5K): multiply the fronts, count the zeros.
 export function genBigMulDiv(rng, level = 1) {
   if (level === 1) {
     const a = randInt(rng, 1, 9), b = randInt(rng, 2, 9);
-    if (rng() < 0.5) return bigAnswer(`<span class="big-num">${a} million × ${b} = ?</span>`, a * b * 1e6, [`${a} × ${b} = ${a * b}, so ${a} million × ${b} = ${a * b} million.`]);
-    return bigAnswer(`<span class="big-num">${a * b} million ÷ ${b} = ?</span>`, a * 1e6, [`${a * b} ÷ ${b} = ${a}, so it is ${a} million.`]);
+    if (rng() < 0.5) {
+      return bigAnswer(`<span class="big-num">${a}M × ${b} = ?</span>${SYMBOLS}`, a * b * 1e6,
+        [`${a}M means ${a} million. ${b} groups of ${a} million.`, `Multiply the numbers in front: ${a} × ${b} = ${a * b}.`, `Keep the M: ${a * b}M = ${a * b} million.`]);
+    }
+    return bigAnswer(`<span class="big-num">${a * b}M ÷ ${b} = ?</span>${SYMBOLS}`, a * 1e6,
+      [`${a * b}M means ${a * b} million, shared into ${b} equal groups.`, `Divide the numbers in front: ${a * b} ÷ ${b} = ${a}.`, `Keep the M: ${a}M = ${a} million.`]);
   }
   if (level === 2) {
     if (rng() < 0.5) {
-      const a = randInt(rng, 2, 9) * 10, b = randInt(rng, 2, 9) * 1e5;
-      return bigAnswer(`<span class="big-num long">${a} × ${fmt(b)} = ?</span>`, a * b, [`Multiply the front digits: ${a / 10} × ${b / 1e5} = ${(a / 10) * (b / 1e5)}.`, `Then add the zeros: 1 from ${a} and 5 from ${fmt(b)}, 6 zeros in all.`]);
+      const a = randInt(rng, 2, 9) * 10, b = randInt(rng, 2, 9) * 1e5, f = (a / 10) * (b / 1e5);
+      return bigAnswer(`<span class="big-num">${a} × ${shortBig(b)} = ?</span>${SYMBOLS}`, a * b,
+        [`${shortBig(b)} = ${fmt(b)}: that is ${b / 1e5} with 5 zeros.`, `Multiply the front digits: ${a / 10} × ${b / 1e5} = ${f}.`, `Count the zeros: 1 from ${a} and 5 from ${fmt(b)}, 6 zeros in all.`, `${f} with 6 zeros is ${fmt(a * b)} = ${shortBig(a * b)}.`]);
     }
-    const q = randInt(rng, 2, 9) * 1e4, d = randInt(rng, 2, 9) * 100;
-    return bigAnswer(`<span class="big-num long">${fmt(q * d)} ÷ ${d} = ?</span>`, q, [`Cross off the 2 zeros of ${d} from ${fmt(q * d)}: ${fmt((q * d) / 100)} ÷ ${d / 100}.`, `${fmt((q * d) / 100)} ÷ ${d / 100} = ${fmt(q)}.`]);
+    const q = randInt(rng, 2, 9) * 1e4, d = randInt(rng, 2, 9) * 100, n = q * d;
+    return bigAnswer(`<span class="big-num">${shortBig(n)} ÷ ${d} = ?</span>${SYMBOLS}`, q,
+      [`${shortBig(n)} = ${fmt(n)}.`, `Cross off the 2 zeros of ${d}, and 2 zeros of ${fmt(n)}: ${fmt(n / 100)} ÷ ${d / 100}.`, `${fmt(n / 100)} ÷ ${d / 100} = ${fmt(q)} = ${shortBig(q)}.`]);
   }
   const a = randInt(rng, 2, 9), b = randInt(rng, 2, 9), n = a * b;
-  const [x, xName, y, yName, ans] = pick([[1e6, 'M', 1e6, 'M', 'trillion'], [1e3, ',000', 1e6, 'M', 'billion'], [1e6, 'M', 1e3, ',000', 'billion']], rng);
-  const show = (k, v, name) => (name === 'M' ? `${k}M` : fmt(k * v));
-  const zeros = Math.log10(x) + Math.log10(y);
+  const [x, y] = pick([[1e6, 1e6], [1e3, 1e6], [1e6, 1e3], [1e3, 1e3]], rng);
+  const z = zerosOf(x) + zerosOf(y), ans = { 6: 'million', 9: 'billion', 12: 'trillion' }[z];
+  const sym = v => (v === 1e6 ? 'M' : 'K');
+  const wrong = ['million', 'billion', 'trillion'].filter(w => w !== ans);
   return {
-    kind: 'choice', prompt: `<span class="big-num">${show(a, x, xName)} × ${show(b, y, yName)} = ?</span><span class="q-hint block">M = million</span>`,
-    choices: shuffle([`${n} million`, `${n} billion`, `${n} trillion`, `${n * 10} ${ans}`], rng), answer: `${n} ${ans}`,
-    steps: [`Multiply the front numbers: ${a} × ${b} = ${n}.`, `Count the zeros: ${Math.log10(x)} + ${Math.log10(y)} = ${zeros} zeros. 1 with ${zeros} zeros is a ${ans}.`, `So the answer is ${n} ${ans}.`],
+    kind: 'choice', prompt: `<span class="big-num">${a}${sym(x)} × ${b}${sym(y)} = ?</span>${SYMBOLS}`,
+    choices: shuffle([`${n} ${ans}`, ...wrong.map(w => `${n} ${w}`), `${n * 10} ${ans}`], rng), answer: `${n} ${ans}`,
+    steps: [`Multiply the numbers in front: ${a} × ${b} = ${n}.`, `Count the zeros: ${sym(x)} has ${zerosOf(x)} and ${sym(y)} has ${zerosOf(y)}, so ${zerosOf(x)} + ${zerosOf(y)} = ${z} zeros.`, `1 with ${z} zeros is a ${ans}, so the answer is ${n} ${ans}.`],
   };
 }
 
 // level 1: 10% and 50% of millions. 2: 25%, 20%, 5%. 3: 15%, 35%, 75%, 12%.
 export function genBigPct(rng, level = 1) {
   const p = pick([[10, 50], [25, 20, 5], [15, 35, 75, 12]][level - 1], rng), m = randInt(rng, 2, 9), N = m * 1e6;
-  return bigAnswer(`What is <span class="big-num">${p}%</span> of <span class="big-num">${m} million</span>?`, (N * p) / 100,
-    [`1% of ${m} million is ${fmt(N / 100)}.`, `So ${p}% is ${p} × ${fmt(N / 100)} = ${fmt((N * p) / 100)}.`]);
+  return bigAnswer(`What is <span class="big-num">${p}%</span> of <span class="big-num">${m}M</span>?${SYMBOLS}`, (N * p) / 100,
+    [`${m}M = ${m} million = ${fmt(N)}.`, `1% is 1 out of 100, so divide by 100: 1% of ${fmt(N)} is ${fmt(N / 100)}.`, `${p}% is ${p} times that: ${p} × ${fmt(N / 100)} = ${fmt((N * p) / 100)}.`]);
 }
 
 // Percent of hundreds and thousands: level 1 10%/50%, 2 20%/25%/5%, 3 15%-75% of thousands.
@@ -820,7 +897,7 @@ export function genPctBig(rng, level = 1) {
     : p % 10 === 0 ? `10% of ${fmt(N)} is ${fmt(tenth)}. ${p}% is ${p / 10} × ${fmt(tenth)} = ${fmt(ans)}.`
       : p === 25 || p === 75 ? `25% is a quarter: ${fmt(N)} ÷ 4 = ${fmt(N / 4)}.${p === 75 ? ` 75% is 3 quarters: ${fmt(ans)}.` : ''}`
         : `10% of ${fmt(N)} is ${fmt(tenth)}, so 5% is half of that: ${fmt(tenth / 2)}. ${p}% = ${p === 5 ? fmt(ans) : `${(p - 5) / 10} × ${fmt(tenth)} + ${fmt(tenth / 2)} = ${fmt(ans)}`}.`;
-  return { kind: 'input', prompt: `What is <span class="big-num">${p}%</span> of <span class="big-num">${fmt(N)}</span>?`, answer: ans, steps: [how] };
+  return { kind: 'input', prompt: `What is <span class="big-num">${p}%</span> of <span class="big-num">${fmt(N)}</span>?`, answer: ans, steps: [`${p}% means ${p} out of every 100. Find 10% first: divide by 10.`, how, `Check: ${fmt(ans)} is ${p === 50 ? 'exactly half' : p > 50 ? 'more than half' : 'less than half'} of ${fmt(N)}, which fits ${p}%.`] };
 }
 
 // ---------- Algebra ----------
@@ -839,18 +916,18 @@ export function genMissing(rng, level = 1) {
       [`${c} ÷ ${box} = ${a}`, b, `${c} ÷ what = ${a}? Flip it: ${c} ÷ ${a} = ${b}, so the missing number is ${b}.`],
       [`${box} ÷ ${a} = ${b}`, c, `Undo the ÷ with ×: ${b} × ${a} = ${c}.`],
     ], rng);
-    return { kind: 'input', prompt: `<span class="big-num">${shown}</span>`, answer: ans, steps: [how] };
+    return { kind: 'input', prompt: `<span class="big-num">${shown}</span>`, answer: ans, steps: [how, `Check: put ${ans} in the box. ${shown.replace(box, ans)}. It works!`] };
   }
   const max = level === 1 ? 20 : 200;
   const [a, b] = until(() => [randInt(rng, 1, max), randInt(rng, 1, max)], ([x, y]) => x + y <= max);
   const c = a + b;
   const [shown, ans, how] = pick([
     [`${box} + ${a} = ${c}`, b, `Take ${a} away from ${c}: ${c} − ${a} = ${b}.`],
-    [`${a} + ${box} = ${c}`, b, `Count up from ${a} to ${c}: that is ${b}.`],
+    [`${a} + ${box} = ${c}`, b, `Count up from ${a} to ${c}, or take away: ${c} − ${a} = ${b}.`],
     [`${box} − ${a} = ${b}`, c, `Undo the − with +: ${b} + ${a} = ${c}.`],
     [`${c} − ${box} = ${a}`, b, `${c} − ${a} = ${b}, so ${b} was taken away.`],
   ], rng);
-  return { kind: 'input', prompt: `<span class="big-num">${shown}</span>`, answer: ans, steps: [how] };
+  return { kind: 'input', prompt: `<span class="big-num">${shown}</span>`, answer: ans, steps: [how, `Check: put ${ans} in the box. ${shown.replace(box, ans)}. It works!`] };
 }
 
 // Solve for x in one step: level 1 x + a, x − a; 2 ax, x ÷ a; 3 bigger numbers of every kind.
@@ -864,7 +941,7 @@ export function genOneStep(rng, level = 1) {
   }
   const a = randInt(rng, 2, big ? 15 : 9), x = randInt(rng, 2, big ? 15 : 10);
   if (kind === '×') return { kind: 'input', prompt: `Solve: <span class="big-num">${a}${X} = ${a * x}</span>`, answer: x, steps: [`${a}x means ${a} × x.`, `Undo × ${a} by dividing: ${a * x} ÷ ${a} = ${x}, so x = ${x}.`] };
-  return { kind: 'input', prompt: `Solve: <span class="big-num">${X} ÷ ${a} = ${x}</span>`, answer: a * x, steps: [`Undo ÷ ${a} by multiplying: ${x} × ${a} = ${a * x}, so x = ${a * x}.`] };
+  return { kind: 'input', prompt: `Solve: <span class="big-num">${X} ÷ ${a} = ${x}</span>`, answer: a * x, steps: [`x ÷ ${a} = ${x} means x shared into ${a} groups gives ${x} each.`, `Undo ÷ ${a} by multiplying: ${x} × ${a} = ${a * x}, so x = ${a * x}.`, `Check: ${a * x} ÷ ${a} = ${x}.`] };
 }
 
 // Two steps: level 1 ax + b = c, 2 ax − b = c and x ÷ a + b = c, 3 a(x + b) = c and bigger.
@@ -894,7 +971,7 @@ export function genExpr(rng, level = 1) {
   }
   const b = randInt(rng, 1, x - 1);
   const [shown, ans] = pick([[`${X} + ${b + 3}`, x + b + 3], [`${X} − ${b}`, x - b], [`2${X}`, 2 * x], [`${X} + ${X}`, 2 * x]], rng);
-  return { kind: 'input', prompt: `If ${X} = ${x}, what is <span class="big-num">${shown}</span>?`, answer: ans, steps: [`Swap x for ${x}: ${shown.replace(/<[^>]+>x<\/i>/g, String(x)).replace(/^2(\d)/, '2 × $1')} = ${ans}.`] };
+  return { kind: 'input', prompt: `If ${X} = ${x}, what is <span class="big-num">${shown}</span>?`, answer: ans, steps: [`A letter like x stands for a number. Here x is ${x}.`, `Swap x for ${x}: ${shown.replace(/<[^>]+>x<\/i>/g, String(x)).replace(/^2(\d)/, '2 × $1')} = ${ans}.`, ...(shown.startsWith('2') ? ['2x means 2 × x: a number next to a letter means multiply.'] : [])] };
 }
 
 // Find the rule: level 1 add k, 2 multiply by k, 3 multiply then add.
@@ -1001,9 +1078,9 @@ export const SKILLS = [
   S('pct-big', 'dec', 'Percents of big numbers', '💰', ['pct-of'], '20% of 500', rng => genPctBig(rng, 2)),
 
   S('big-read', 'big', 'Millions & billions', '🔭', ['num-place'], 'How many zeros in a million?', rng => genBigRead(rng, 1)),
-  S('big-addsub', 'big', 'Millions: + and −', '🚀', ['big-read', 'add-4d'], '3 million + 2 million', rng => genBigAddSub(rng, 1)),
-  S('big-muldiv', 'big', 'Millions: × and ÷', '🪐', ['big-read', 'mul-3x1'], '3M × 2M', rng => genBigMulDiv(rng, 1)),
-  S('big-pct', 'big', 'Percents of millions', '💸', ['big-read', 'pct-big'], '25% of 8 million', rng => genBigPct(rng, 1)),
+  S('big-addsub', 'big', 'Millions: + and −', '🚀', ['big-read', 'add-4d'], '3M + 2M', rng => genBigAddSub(rng, 1)),
+  S('big-muldiv', 'big', 'Millions: × and ÷', '🪐', ['big-read', 'mul-3x1'], '3M × 5K, 12M ÷ 4', rng => genBigMulDiv(rng, 1)),
+  S('big-pct', 'big', 'Percents of millions', '💸', ['big-read', 'pct-big'], '25% of 8M', rng => genBigPct(rng, 1)),
 
   S('alg-missing', 'alg', 'Missing numbers', '🔍', ['mul-facts'], '? + 7 = 15, 6 × ? = 42', rng => genMissing(rng, 1)),
   S('alg-one', 'alg', 'Solve for x', '🧩', ['alg-missing'], 'x + 5 = 12, 3x = 21', rng => genOneStep(rng, 1)),
@@ -1016,9 +1093,16 @@ export const SKILLS = [
 export const skillById = id => SKILLS.find(s => s.id === id);
 
 // Every skill can be played any time. A skill is "reached" once its prerequisites have ★★ (the suggested
-// path) or the player has started it; Daily Mix and Speed "Everything I know" draw from reached skills.
+// path), the player has started it, or it is at or below the player's grade; Daily Mix and Speed
+// "Everything I know" draw from reached skills.
 export function isReached(skill, p) {
   const recs = p.math.skills;
   if (recs[skill.id]?.attempts || recs[skill.id]?.stars) return true;
+  if (playerGrade(p) && gradeOf(skill) <= playerGrade(p)) return true;
   return skill.requires.every(r => (recs[r]?.stars || 0) >= 2);
+}
+
+// ✨ Next in a unit: the first reached skill without ★★, skipping untouched skills far below the player's grade.
+export function suggestedSkill(list, p) {
+  return list.find(s => isReached(s, p) && (p.math.skills[s.id]?.stars || 0) < 2 && !(belowGrade(s, p) && !p.math.skills[s.id]?.attempts));
 }

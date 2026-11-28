@@ -81,6 +81,18 @@ test('subtraction borrowing across zeros', () => {
   assert.deepEqual(s2.newTop, [10, 9, 9, 4]);
 });
 
+test('diagnose typed mistakes: wrong sign, zeros, off by one', () => {
+  const r = seeded(3);
+  const add = genAt(skillById('basic-add'), 3, r), [a, b] = add.nums;
+  if (a !== b) assert.equal(diagnose(add, String(a - b))?.tag, a - b === add.answer - 1 || a - b === add.answer + 1 ? 'off-by-one' : 'wrong-sign');
+  const sub = genAt(skillById('basic-sub'), 2, r);
+  assert.equal(diagnose(sub, String(sub.nums[0] + sub.nums[1])).tag, 'wrong-sign');
+  assert.equal(diagnose(sub, String(sub.answer + 1)).tag, 'off-by-one');
+  const big = genAt(skillById('big-muldiv'), 1, r);
+  assert.equal(diagnose(big, String(big.answer / 1000)).tag, 'zeros');
+  assert.equal(diagnose(big, `${big.answer / 1e6}M`), null, '5M is right, not a mistake');
+});
+
 test('diagnose classic misconceptions', () => {
   assert.equal(diagnose(makeAdd(58, 67), '115').tag, 'forgot-carry');
   assert.equal(diagnose(makeSub(52, 27), '35').tag, 'flip-subtract');
@@ -195,7 +207,8 @@ test('every skill is playable; reached skills follow the suggested path', async 
 });
 
 test('big numbers, big percents and algebra tiers', async () => {
-  const { parseBigNumber, bigWords } = await import('../js/math/skills.js');
+  const S = await import('../js/math/skills.js');
+  const { parseBigNumber, bigWords } = S;
   for (const [s, v] of [['6000000', 6e6], ['6,000,000', 6e6], ['6M', 6e6], ['6 million', 6e6], ['2.5 million', 2.5e6], ['300k', 3e5], ['56 billion', 56e9], ['6T', 6e12], ['abc', null], ['6 apples', null]]) assert.equal(parseBigNumber(s), v, s);
   assert.equal(bigWords(2.5e6), '2.5 million');
   assert.equal(bigWords(4750000), '4.75 million');
@@ -207,8 +220,16 @@ test('big numbers, big percents and algebra tiers', async () => {
   assert.ok(sample('pct-big', 3).every(p => nums(p)[1] >= 1000 && Number.isInteger(p.answer)));
   assert.ok(sample('big-addsub', 1).every(p => p.answer % 1e6 === 0 && checkAnswer(p, `${p.answer / 1e6}M`)), 'accepts 5M');
   const zeros = sample('big-muldiv', 3);
-  assert.ok(zeros.every(p => p.kind === 'choice' && /trillion|billion/.test(p.answer)));
-  assert.ok(zeros.some(p => /M × \d+M/.test(p.prompt.replace(/<[^>]+>/g, '')) && p.answer.endsWith('trillion')), '3M × 2M is trillions');
+  assert.ok(zeros.every(p => p.kind === 'choice' && /million|trillion|billion/.test(p.answer) && new Set(p.choices).size === 4 && p.choices.includes(p.answer)));
+  const plain = p => p.prompt.replace(/<span class="q-hint[^]*$/, '').replace(/<[^>]+>/g, '');
+  assert.ok(zeros.some(p => /\dM × \d+M/.test(plain(p)) && p.answer.endsWith('trillion')), '3M × 2M is trillions');
+  assert.ok(zeros.some(p => /\dK × \d+K/.test(plain(p)) && p.answer.endsWith('million')), '3K × 5K is millions');
+  assert.ok(zeros.some(p => /\dM × \d+K|\dK × \d+M/.test(plain(p)) && p.answer.endsWith('billion')), '3M × 5K is billions');
+  // big × and ÷ use K / M symbols, never long digit strings
+  for (const t of [1, 2]) assert.ok(sample('big-muldiv', t).every(p => /\d(K|M)\b/.test(plain(p)) && !/\d,\d{3}/.test(plain(p))), `big-muldiv ★${t} uses K/M`);
+  assert.equal(S.shortBig(3000), '3K');
+  assert.equal(S.shortBig(2.5e6), '2.5M');
+  assert.equal(S.shortBig(12e6), '12M');
   assert.ok(sample('big-read', 3).every(p => p.answer >= 1000));
   assert.ok(sample('big-pct', 3).every(p => p.answer >= 100000 && Number.isInteger(p.answer)));
   // every algebra answer really solves its equation
@@ -218,4 +239,59 @@ test('big numbers, big percents and algebra tiers', async () => {
     assert.equal(Function('x', `return ${lhs}`)(p.answer), Number(rhs), eq);
   }
   assert.ok(sample('alg-rule', 3).every(p => p.prompt.includes('io-table') && Number.isInteger(p.answer)));
+});
+
+test('+ and − are written one number below the other, decimal points lined up', async () => {
+  const { stacked } = await import('../js/math/skills.js');
+  const r = seeded(5);
+  for (const [id, t] of [['basic-add', 1], ['basic-add', 3], ['basic-sub', 3], ['dec-add', 1], ['dec-add', 3], ['big-addsub', 1], ['big-addsub', 2], ['big-addsub', 3]]) {
+    for (let i = 0; i < 40; i++) {
+      const p = genAt(skillById(id), t, r);
+      assert.ok(p.prompt.includes('class="stack-sum"'), `${id}★${t} is stacked`);
+      assert.ok(!/\d\s*[+−]\s*\d[^]*= \?/.test(p.prompt.replace(/<[^>]+>/g, '')), `${id}★${t} is not inline`);
+    }
+  }
+  // 3.5 + 12.25: 3.5 gets a hidden 0 so the points line up
+  const html = stacked('3.5', '12.25', '+');
+  assert.match(html, /3\.5<span class="ghost">0<\/span>/);
+  assert.match(stacked(47, 8, '+', 55), /sa">55</);
+});
+
+test('a wrong answer comes with two different worked examples of the same tier', async () => {
+  const { workedExamples, solvedPrompt, givenText } = await import('../js/math/examples.js');
+  const r = seeded(9);
+  for (const s of SKILLS) {
+    for (const t of [1, 2, 3]) {
+      const pr = genAt(s, t, r);
+      const exs = workedExamples(s, t, pr, r);
+      assert.equal(exs.length, 2, `${s.id}★${t} has 2 examples`);
+      assert.notEqual(exs[0].html + exs[0].answer, exs[1].html + exs[1].answer, `${s.id}★${t} examples differ`);
+      for (const ex of exs) assert.ok(ex.steps.length && ex.answer, `${s.id}★${t} example is worked`);
+    }
+  }
+  const col = makeAdd(47, 38);
+  assert.ok(solvedPrompt(col).html.includes('>85<'));
+  assert.equal(givenText({ kind: 'division' }, { q: '12', r: '3' }), '12 R 3');
+  assert.equal(givenText({ kind: 'fraction' }, { n: '3', d: '4' }), '3/4');
+});
+
+test('grade paths: every skill has a grade; the grade moves suggestions and reach', async () => {
+  const { SKILL_GRADE, gradeOf, gradeName } = await import('../js/math/grades.js');
+  const { isReached, suggestedSkill } = await import('../js/math/skills.js');
+  for (const s of SKILLS) assert.ok(SKILL_GRADE[s.id] >= 1 && SKILL_GRADE[s.id] <= 8, `${s.id} has a grade`);
+  assert.equal(Object.keys(SKILL_GRADE).length, SKILLS.length, 'no stale grade entries');
+  assert.equal(gradeName(3), '3rd grade');
+  const kid = grade => ({ math: { skills: {} }, settings: { grade } });
+  const add = SKILLS.filter(s => s.unit === 'add');
+  assert.equal(suggestedSkill(add, kid(0)), undefined, 'no grade: Addition waits for Math Basics');
+  const k0 = kid(0);
+  k0.math.skills['basic-add'] = { stars: 2 };
+  assert.equal(suggestedSkill(add, k0).id, 'add-2d-nc', 'no grade: start at the beginning');
+  assert.equal(gradeOf(suggestedSkill(add, kid(4))), 3, '4th grade: start at the 3rd grade skills, not the 1st grade ones');
+  assert.equal(suggestedSkill(SKILLS.filter(s => s.unit === 'basic'), kid(5)), undefined, '5th grade: no ✨ in Math Basics');
+  assert.ok(isReached(skillById('mul-2x2'), kid(4)) && !isReached(skillById('mul-2x2'), kid(0)));
+  assert.ok(!isReached(skillById('geo-pythag'), kid(4)));
+  const started = kid(5);
+  started.math.skills['basic-add'] = { attempts: 3, stars: 0 };
+  assert.equal(suggestedSkill(SKILLS.filter(s => s.unit === 'basic'), started).id, 'basic-add', 'a started skill below grade is still suggested');
 });

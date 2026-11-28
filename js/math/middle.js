@@ -69,7 +69,8 @@ export function genIntAddSub(rng, level = 1) {
     const ab = o1 === '+' ? a + b : a - b, v = o2 === '+' ? ab + c : ab - c;
     return int(big(`${neg(a)} ${o1} ${paren(b)} ${o2} ${paren(c)} = ?`), v, [`Work left to right: ${neg(a)} ${o1} ${paren(b)} = ${neg(ab)}.`, `${neg(ab)} ${o2} ${paren(c)} = ${neg(v)}.`]);
   }
-  const a = nz(rng, -20, 20), b = nz(rng, -20, 20);
+  // At least one negative: that is what this skill practices (6 + 20 belongs in Addition).
+  const [a, b] = until(() => [nz(rng, -20, 20), nz(rng, -20, 20)], ([x, y]) => x < 0 || y < 0);
   if (level === 1) {
     return int(big(`${neg(a)} + ${paren(b)} = ?`), a + b, [Math.sign(a) === Math.sign(b)
       ? `Same signs: add ${Math.abs(a)} + ${Math.abs(b)} = ${Math.abs(a + b)} and keep the sign.`
@@ -99,7 +100,7 @@ export function genFactor(rng, level = 1) {
     const n = pick([12, 18, 20, 24, 28, 30, 36, 40, 42, 48], rng);
     const yes = pick(factorsOf(n).filter(d => d > 1 && d < n), rng);
     const nos = shuffle(Array.from({ length: 11 }, (_, i) => i + 2).filter(d => n % d !== 0), rng).slice(0, 3);
-    return choice(`Which number is a <b>factor</b> of ${big(n)}?`, shuffle([yes, ...nos].map(String), rng), String(yes), [`A factor divides ${n} with no remainder: ${n} ÷ ${yes} = ${n / yes}.`]);
+    return choice(`Which number is a <b>factor</b> of ${big(n)}?`, shuffle([yes, ...nos].map(String), rng), String(yes), [`A factor of ${n} divides it exactly, with no remainder.`, `${n} ÷ ${yes} = ${n / yes}, so ${yes} is a factor (${yes} × ${n / yes} = ${n}).`, `The others leave a remainder: ${nos.map(d => `${n} ÷ ${d} = ${Math.floor(n / d)} R ${n % d}`).join(', ')}.`]);
   }
   const [a, b] = until(() => {
     const g = randInt(rng, 2, level === 2 ? 9 : 15);
@@ -127,7 +128,7 @@ export function genMultiple(rng, level = 1) {
 export function genFracMulDiv(rng, level = 1) {
   if (level === 1) {
     const d = randInt(rng, 2, 8), n = randInt(rng, 1, d - 1), w = randInt(rng, 2, 9);
-    return { kind: 'fraction', prompt: big(`${frac(n, d)} × ${w} =`), answer: { n: n * w, d }, steps: [`Multiply the top by ${w}: ${n} × ${w} = ${n * w}. Keep the bottom: ${n * w}/${d}.`] };
+    return { kind: 'fraction', prompt: big(`${frac(n, d)} × ${w} =`), answer: { n: n * w, d }, steps: [`${n}/${d} × ${w} means ${w} groups of ${n}/${d}. The pieces stay the same size (${d}ths).`, `Multiply the top by ${w}: ${n} × ${w} = ${n * w}. Keep the bottom: ${n * w}/${d}.`] };
   }
   const [a, b, c, d] = [randInt(rng, 1, 7), randInt(rng, 2, 9), randInt(rng, 1, 7), randInt(rng, 2, 9)];
   const [n1, d1] = a < b ? [a, b] : [b - 1 || 1, b];
@@ -175,12 +176,12 @@ export function genRatio(rng, level = 1) {
 export function genRate(rng, level = 1) {
   if (level === 1) {
     const h = randInt(rng, 2, 6), r = randInt(rng, 3, 15) * 5;
-    return num(`A car goes <b>${r * h} miles</b> in <b>${h} hours</b>. How many miles is that <b>per hour</b>?`, r, [`Unit rate = miles ÷ hours = ${r * h} ÷ ${h} = ${r}.`], { suffix: 'mph' });
+    return num(`A car goes <b>${r * h} miles</b> in <b>${h} hours</b>. How many miles is that <b>per hour</b>?`, r, [`"Per hour" means in 1 hour, so share the miles equally over the ${h} hours.`, `Miles ÷ hours = ${r * h} ÷ ${h} = ${r}.`, `Check: ${r} × ${h} = ${r * h} miles.`], { suffix: 'mph' });
   }
   if (level === 2) {
     const n = pick([3, 4, 5, 6, 8], rng), each = randInt(rng, 25, 250) / 100;
     const total = round2(each * n);
-    return dec(`<b>${n}</b> notebooks cost <b>${money(total)}</b>. How much is <b>one</b> notebook? $ ___`, total / n, [`Unit price = ${money(total)} ÷ ${n} = ${money(total / n)}.`]);
+    return dec(`<b>${n}</b> notebooks cost <b>${money(total)}</b>. How much is <b>one</b> notebook? $ ___`, total / n, [`The price for one is the total shared by the number of notebooks.`, `${money(total)} ÷ ${n} = ${money(total / n)}.`, `Check: ${money(total / n)} × ${n} = ${money(total)}.`]);
   }
   const [n1, n2] = shuffle([3, 4, 5, 6, 8, 10], rng).slice(0, 2), p1 = randInt(rng, 40, 120) / 100, p2 = until(() => randInt(rng, 40, 120) / 100, x => Math.abs(x - p1) > 0.08);
   const A = `${n1} for ${money(p1 * n1)}`, B = `${n2} for ${money(p2 * n2)}`;
@@ -191,8 +192,8 @@ export function genRate(rng, level = 1) {
 
 export function genProportion(rng, level = 1) {
   const a = randInt(rng, 1, 8), b = until(() => randInt(rng, 2, 9), x => x !== a), k = randInt(rng, 2, level === 1 ? 5 : 9);
-  if (level === 1) return num(big(`${frac(a, b)} = ${frac('x', b * k)}`) + '<br>What is x?', a * k, [`${b} × ${k} = ${b * k}, so multiply the top by ${k} too: ${a} × ${k} = ${a * k}.`]);
-  if (level === 2) return num(big(`${frac('x', b)} = ${frac(a * k, b * k)}`) + '<br>What is x?', a, [`${b * k} ÷ ${k} = ${b}, so divide the top by ${k} too: ${a * k} ÷ ${k} = ${a}.`]);
+  if (level === 1) return num(big(`${frac(a, b)} = ${frac('x', b * k)}`) + '<br>What is x?', a * k, [`Equal fractions: whatever you do to the bottom, do to the top.`, `The bottom went from ${b} to ${b * k}: that is × ${k}.`, `So multiply the top by ${k} too: ${a} × ${k} = ${a * k}.`]);
+  if (level === 2) return num(big(`${frac('x', b)} = ${frac(a * k, b * k)}`) + '<br>What is x?', a, [`Equal fractions: whatever you do to the bottom, do to the top.`, `The bottom goes from ${b * k} to ${b}: that is ÷ ${k}.`, `So divide the top by ${k} too: ${a * k} ÷ ${k} = ${a}.`]);
   const cups = randInt(rng, 2, 4), cookies = cups * randInt(rng, 6, 12), want = cookies * pick([2, 3], rng) / cups * pick([1, 2], rng);
   const ans = (want / cookies) * cups;
   return num(`A recipe uses <b>${cups} cups</b> of flour for <b>${cookies} cookies</b>. How many cups for <b>${want} cookies</b>?`, ans,
@@ -265,7 +266,7 @@ export function genPctChange(rng, level = 1) {
 export function genPower(rng, level = 1) {
   if (level === 1) {
     const b = randInt(rng, 2, 6), e = randInt(rng, 2, b <= 3 ? 4 : 3);
-    return num(big(`${sup(b, e)} = ?`), b ** e, [`${sup(b, e)} means ${e} ${b}s multiplied: ${Array(e).fill(b).join(' × ')} = ${b ** e}.`]);
+    return num(big(`${sup(b, e)} = ?`), b ** e, [`The small ${e} is the exponent: it says how many ${b}s to multiply. It is not ${b} × ${e}.`, `${sup(b, e)} = ${Array(e).fill(b).join(' × ')}.`, `Multiply step by step: ${Array.from({ length: e - 1 }, (_, i) => `${b ** (i + 1)} × ${b} = ${b ** (i + 2)}`).join(', then ')}. So ${sup(b, e)} = ${b ** e}.`]);
   }
   if (level === 2) {
     const [b, e] = pick([[10, randInt(rng, 2, 6)], [5, 3], [3, 4], [2, 6], [4, 3], [11, 2], [12, 2], [7, 2], [9, 3]], rng);
@@ -306,12 +307,12 @@ export function genSciNote(rng, level = 1) {
 export function genRoot(rng, level = 1) {
   if (level === 1) {
     const r = randInt(rng, 2, 12);
-    return num(big(`√${r * r} = ?`), r, [`Which number times itself makes ${r * r}? ${r} × ${r} = ${r * r}.`]);
+    return num(big(`√${r * r} = ?`), r, [`√ asks: which number times itself makes ${r * r}?`, `Try ${r}: ${r} × ${r} = ${r * r}. That works.`, `So √${r * r} = ${r}.`]);
   }
   if (level === 2) {
-    if (rng() < 0.5) { const r = randInt(rng, 2, 6); return num(big(`∛${r ** 3} = ?`), r, [`Which number used 3 times makes ${r ** 3}? ${r} × ${r} × ${r} = ${r ** 3}.`]); }
+    if (rng() < 0.5) { const r = randInt(rng, 2, 6); return num(big(`∛${r ** 3} = ?`), r, [`∛ asks: which number used 3 times in a multiplication makes ${r ** 3}?`, `Try ${r}: ${r} × ${r} = ${r * r}, and ${r * r} × ${r} = ${r ** 3}.`, `So ∛${r ** 3} = ${r}.`]); }
     const r = randInt(rng, 11, 15);
-    return num(big(`√${r * r} = ?`), r, [`${r} × ${r} = ${r * r}.`]);
+    return num(big(`√${r * r} = ?`), r, [`√ asks: which number times itself makes ${r * r}?`, `It is more than 10 × 10 = 100, so try numbers above 10.`, `${r} × ${r} = ${r * r}, so √${r * r} = ${r}.`]);
   }
   const n = until(() => randInt(rng, 5, 140), x => !Number.isInteger(Math.sqrt(x)));
   const lo = Math.floor(Math.sqrt(n)), ans = `${lo} and ${lo + 1}`;
@@ -338,7 +339,7 @@ export function genInequality(rng, level = 1) {
   if (level === 1) {
     const k = randInt(rng, 2, 15), v = randInt(rng, 0, 20), op = pick(['>', '<', '≥', '≤'], rng);
     const ok = { '>': v > k, '<': v < k, '≥': v >= k, '≤': v <= k }[op];
-    return choice(`Is ${big(v)} a solution of ${big(`${X} ${op} ${k}`)}?`, ['Yes', 'No'], ok ? 'Yes' : 'No', [`Put ${v} in for x: is ${v} ${op} ${k}? ${ok ? 'Yes, that is true.' : 'No, that is false.'}`]);
+    return choice(`Is ${big(v)} a solution of ${big(`${X} ${op} ${k}`)}?`, ['Yes', 'No'], ok ? 'Yes' : 'No', [`${{ '>': '> means greater than', '<': '< means less than', '≥': '≥ means greater than or equal to', '≤': '≤ means less than or equal to' }[op]}.`, `Put ${v} in for x: is ${v} ${op} ${k}? ${ok ? 'Yes, that is true.' : 'No, that is false.'}`, ok ? `So ${v} is a solution.` : `So ${v} is not a solution.`]);
   }
   const a = level === 2 ? 1 : randInt(rng, 2, 6), x = randInt(rng, 1, 12), b = randInt(rng, 1, 12), op = pick(['>', '<', '≥', '≤'], rng);
   const left = level === 2 ? `${X} + ${b}` : `${a}${X} + ${b}`;
@@ -353,11 +354,11 @@ export function genInequality(rng, level = 1) {
 export function genAngles(rng, level = 1) {
   if (level === 1) {
     const a = randInt(rng, 10, 80);
-    return num(`Two angles are <b>complementary</b> (they add to 90°). One is <b>${a}°</b>. What is the other?`, 90 - a, [`90 − ${a} = ${90 - a}.`], { suffix: '°' });
+    return num(`Two angles are <b>complementary</b> (they add to 90°). One is <b>${a}°</b>. What is the other?`, 90 - a, [`Complementary angles make a right angle: together they are 90°.`, `So take away the angle you know: 90 − ${a} = ${90 - a}.`, `Check: ${a} + ${90 - a} = 90.`], { suffix: '°' });
   }
   if (level === 2) {
     const a = randInt(rng, 20, 160);
-    return num(`Two angles are <b>supplementary</b> (they add to 180°). One is <b>${a}°</b>. What is the other?`, 180 - a, [`They make a straight line: 180 − ${a} = ${180 - a}.`], { suffix: '°' });
+    return num(`Two angles are <b>supplementary</b> (they add to 180°). One is <b>${a}°</b>. What is the other?`, 180 - a, [`Supplementary angles make a straight line: together they are 180°.`, `So take away the angle you know: 180 − ${a} = ${180 - a}.`, `Check: ${a} + ${180 - a} = 180.`], { suffix: '°' });
   }
   if (rng() < 0.5) {
     const [a, b] = until(() => [randInt(rng, 20, 100), randInt(rng, 20, 100)], ([p, q]) => p + q < 165);
@@ -369,7 +370,7 @@ export function genAngles(rng, level = 1) {
 
 export function genArea(rng, level = 1) {
   const a = randInt(rng, 3, 15), b = randInt(rng, 3, 15);
-  if (level === 1) return num(`A rectangle is <b>${a} cm</b> long and <b>${b} cm</b> wide. What is its <b>area</b>?`, a * b, [`Area of a rectangle = length × width = ${a} × ${b} = ${a * b}.`], { suffix: 'cm²' });
+  if (level === 1) return num(`A rectangle is <b>${a} cm</b> long and <b>${b} cm</b> wide. What is its <b>area</b>?`, a * b, [`Area is how many 1 cm squares cover the shape.`, `A rectangle is ${b} rows of ${a} squares, so area = length × width.`, `${a} × ${b} = ${a * b} square cm.`], { suffix: 'cm²' });
   if (level === 2) {
     if (rng() < 0.5) { const h = randInt(rng, 2, 10) * 2; return num(`A triangle has a base of <b>${a} m</b> and a height of <b>${h} m</b>. What is its area?`, (a * h) / 2, [`Area of a triangle = base × height ÷ 2.`, `${a} × ${h} ÷ 2 = ${(a * h) / 2}.`], { suffix: 'm²' }); }
     return num(`A parallelogram has a base of <b>${a} ft</b> and a height of <b>${b} ft</b>. What is its area?`, a * b, [`Area of a parallelogram = base × height = ${a} × ${b} = ${a * b}.`], { suffix: 'ft²' });
@@ -408,7 +409,7 @@ export function genPythag(rng, level = 1) {
 export function genScale(rng, level = 1) {
   if (level === 1) {
     const s = pick([2, 5, 10, 20], rng), d = randInt(rng, 2, 12);
-    return num(`On a map, <b>1 cm = ${s} km</b>. Two towns are <b>${d} cm</b> apart on the map. How far apart are they really?`, s * d, [`Each cm is ${s} km: ${d} × ${s} = ${s * d}.`], { suffix: 'km' });
+    return num(`On a map, <b>1 cm = ${s} km</b>. Two towns are <b>${d} cm</b> apart on the map. How far apart are they really?`, s * d, [`The scale says every 1 cm on the map is ${s} km in real life.`, `${d} cm is ${d} of those: ${d} × ${s} = ${s * d} km.`], { suffix: 'km' });
   }
   if (level === 2) {
     const a = randInt(rng, 2, 9), k = randInt(rng, 2, 5), b = randInt(rng, 2, 9);
@@ -416,7 +417,7 @@ export function genScale(rng, level = 1) {
       [`Similar shapes grow by the same scale factor: ${a * k} ÷ ${a} = ${k}.`, `${b} × ${k} = ${b * k}.`]);
   }
   const s = pick([2.5, 4, 1.5, 25], rng), d = randInt(rng, 2, 8);
-  return dec(`A drawing uses <b>1 in = ${s} ft</b>. A room is <b>${d} in</b> long in the drawing. How long is the real room?`, s * d, [`${d} × ${s} = ${round2(s * d)}.`], { suffix: 'ft' });
+  return dec(`A drawing uses <b>1 in = ${s} ft</b>. A room is <b>${d} in</b> long in the drawing. How long is the real room?`, s * d, [`The scale says every 1 inch in the drawing is ${s} ft in real life.`, `${d} inches is ${d} of those: ${d} × ${s} = ${round2(s * d)} ft.`], { suffix: 'ft' });
 }
 
 // ---------------- Statistics & probability ----------------

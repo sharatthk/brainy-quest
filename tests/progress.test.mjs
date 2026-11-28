@@ -53,3 +53,14 @@ test('daily quests: stable per day, varied, and completed by events', () => {
   ensureQuests(p, 'E');
   assert.ok(p.quests.list.every(q => !q.done), 'a new day brings new quests');
 });
+
+test('quest goals follow the player grade', () => {
+  const day = '2026-11-27';
+  const small = pickQuests(day, 'p1', 1), big = pickQuests(day, 'p1', 8);
+  assert.deepEqual(small.map(q => q.id), big.map(q => q.id), 'same quests, different sizes');
+  for (const [a, b] of small.map((q, i) => [q, big[i]])) {
+    const def = QUESTS.find(x => x.id === a.id);
+    assert.equal(a.goal, def.goals[0]);
+    assert.equal(b.goal, def.goals[def.goals.length - 1]);
+  }
+});

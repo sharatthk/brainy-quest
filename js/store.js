@@ -25,7 +25,7 @@ function defaults() {
     spelling: { cards: {}, bestChallenge: 0, stars: {} },
     buddy: {},
     chest: { session: 0, opened: 0 },
-    settings: { voiceURI: '', rate: 0.85, sound: true, dailyGoal: 60, scratch: false },
+    settings: { voiceURI: '', rate: 0.85, sound: true, dailyGoal: 60, scratch: false, grade: 0 },
   };
 }
 

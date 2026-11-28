@@ -3,6 +3,7 @@ import { h, toast, onEnter } from '../ui.js';
 import { screen, stars } from './common.js';
 import { profile, save, getState, exportData, importData, deleteProfile } from '../store.js';
 import { SKILLS, UNITS } from '../math/skills.js';
+import { GRADES, gradeName, playerGrade } from '../math/grades.js';
 import { SUBJECTS } from '../lessons/subjects.js';
 import { book } from '../lessons/lessonApp.js';
 import { recentAccuracy, cardStatus } from '../shared/mastery.js';
@@ -20,6 +21,9 @@ const ERROR_LABELS = {
   'flip-subtract': 'Subtracts smaller from bigger instead of borrowing',
   'forgot-decrement': 'Borrows but forgets to reduce the next digit',
   'forgot-zero': 'Forgets the placeholder zero in 2-digit multiplication',
+  'wrong-sign': 'Adds when it says take away (or the other way round)',
+  'zeros': 'Gets the digits right but the number of zeros wrong',
+  'off-by-one': 'Off by one when counting on or back',
 };
 
 export function viewParent() {
@@ -83,9 +87,12 @@ export function viewParent() {
   const rate = h('input', { type: 'range', min: 0.5, max: 1.2, step: 0.05, value: p.settings.rate, 'aria-label': 'Speaking speed', onchange: e => { p.settings.rate = Number(e.target.value); save(); speak('beautiful'); } });
   const goalSel = h('select', { 'aria-label': 'Daily goal', onchange: e => { p.settings.dailyGoal = Number(e.target.value); save(); } },
     [30, 60, 100, 150].map(v => h('option', { value: v, selected: v === p.settings.dailyGoal ? true : null }, `${v} XP (${{ 30: 'light', 60: 'regular', 100: 'serious', 150: 'intense' }[v]})`)));
+  const gradeSel = h('select', { 'aria-label': 'Grade', onchange: e => { p.settings.grade = Number(e.target.value); save(); } },
+    [0, ...GRADES].map(g => h('option', { value: g, selected: g === playerGrade(p) ? true : null }, gradeName(g))));
   main.append(h('section', { class: 'card stack' }, h('h3', {}, '⚙️ Settings'),
     toggle('Sound effects', p.settings.sound, v => { p.settings.sound = v; save(); }),
     h('label', { class: 'field' }, 'Daily goal ', goalSel),
+    h('label', { class: 'field' }, 'Grade (math path and quests) ', gradeSel),
     speechSupported() ? h('label', { class: 'field' }, 'Spelling voice ', voiceSel) : h('p', { class: 'warn' }, 'Speech is not supported in this browser.'),
     speechSupported() ? h('label', { class: 'field' }, 'Speaking speed ', rate) : null));
 

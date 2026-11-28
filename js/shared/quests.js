@@ -24,20 +24,24 @@ export const questText = q => questById(q.id).text(q.goal);
 const hash = s => [...s].reduce((h, c) => (Math.imul(h, 31) + c.codePointAt(0)) | 0, 7) >>> 0;
 
 // The same three quests all day for a player; at most one subject quest so any game can be played.
-export function pickQuests(day, playerId) {
+// grade (1-8, 0 = not set) sizes the goals: younger players get the smallest goal, older ones the biggest.
+export function pickQuests(day, playerId, grade = 0) {
   const rng = seeded(hash(`${day}:${playerId}`) || 1);
   const out = [];
   for (const q of shuffle(QUESTS, rng)) {
     if (out.length === 3) break;
     if (q.subject && out.some(o => questById(o.id).subject)) continue;
-    out.push({ id: q.id, goal: q.goals[Math.floor(rng() * q.goals.length)], progress: 0, done: false });
+    const r = Math.floor(rng() * q.goals.length);
+    const last = q.goals.length - 1;
+    const i = !grade ? r : grade <= 2 ? 0 : grade <= 5 ? Math.min(1, last) : last;
+    out.push({ id: q.id, goal: q.goals[i], progress: 0, done: false });
   }
   return out;
 }
 
 // Today's quests, made fresh when the day changes.
 export function ensureQuests(p, day) {
-  if (p.quests?.day !== day) p.quests = { day, starsAt: totalStars(p), list: pickQuests(day, p.id || 'player'), bonus: false, fresh: [] };
+  if (p.quests?.day !== day) p.quests = { day, starsAt: totalStars(p), list: pickQuests(day, p.id || 'player', Number(p.settings?.grade) || 0), bonus: false, fresh: [] };
   p.quests.fresh ||= [];
   return p.quests;
 }

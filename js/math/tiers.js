@@ -228,9 +228,9 @@ export const TIERS = {
 
   // ---- Big numbers ----
   'big-read': [T('Millions', rng => genBigRead(rng, 1)), T('Half millions and thousands', rng => genBigRead(rng, 2)), T('Billions', rng => genBigRead(rng, 3))],
-  'big-addsub': [T('3 million + 2 million', rng => genBigAddSub(rng, 1)), T('2,400,000 + 1,300,000', rng => genBigAddSub(rng, 2)), T('5,000,000 − 250,000', rng => genBigAddSub(rng, 3))],
-  'big-muldiv': [T('3 million × 2', rng => genBigMulDiv(rng, 1)), T('40 × 200,000', rng => genBigMulDiv(rng, 2)), T('3M × 2M: count the zeros', rng => genBigMulDiv(rng, 3))],
-  'big-pct': [T('10% and 50% of millions', rng => genBigPct(rng, 1)), T('25%, 20%, 5%', rng => genBigPct(rng, 2)), T('15%, 35%, 75%', rng => genBigPct(rng, 3))],
+  'big-addsub': [T('3M + 2M', rng => genBigAddSub(rng, 1)), T('2,400,000 + 1,300,000', rng => genBigAddSub(rng, 2)), T('5,000,000 − 250,000', rng => genBigAddSub(rng, 3))],
+  'big-muldiv': [T('3M × 2', rng => genBigMulDiv(rng, 1)), T('40 × 300K', rng => genBigMulDiv(rng, 2)), T('3M × 5K: count the zeros', rng => genBigMulDiv(rng, 3))],
+  'big-pct': [T('10% and 50% of 8M', rng => genBigPct(rng, 1)), T('25%, 20%, 5%', rng => genBigPct(rng, 2)), T('15%, 35%, 75%', rng => genBigPct(rng, 3))],
 
   // ---- Algebra ----
   'alg-missing': [T('? + 7 = 15', rng => genMissing(rng, 1)), T('6 × ? = 42', rng => genMissing(rng, 2)), T('Bigger numbers', rng => genMissing(rng, 3))],

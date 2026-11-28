@@ -159,6 +159,8 @@ section + section, .card + .card { margin-top: 1rem; }
 /* ---------- Skill maps ---------- */
 .quest-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
 .quest-head h2 { margin: 0; }
+.grade-pick { white-space: nowrap; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; background: var(--card); border-radius: 999px; padding: 0.3rem 0.4rem 0.3rem 0.9rem; box-shadow: var(--shadow); }
+.grade-pick select { font: inherit; font-weight: 600; border: 2px solid var(--line); border-radius: 999px; padding: 0.2rem 0.5rem; background: var(--bg2); color: var(--ink); }
 .quick-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 0.5rem; }
 .quick { display: flex; align-items: center; gap: 0.8rem; padding: 1rem 1.1rem; border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); transition: transform 0.12s; }
 .quick:hover { transform: translateY(-2px); }
@@ -276,6 +278,35 @@ section + section, .card + .card { margin-top: 1rem; }
 .how ol { margin: 0.4rem 0 0; padding-left: 1.4rem; }
 .how li { margin: 0.25rem 0; }
 .big-msg { font-size: 1.15rem; font-weight: 700; }
+
+/* + and − written one number below the other (places and decimal points lined up) */
+.stack-sum { display: inline-grid; grid-template-columns: auto auto; column-gap: 0.35em; align-items: center; margin: 0.2rem auto; font-size: 2rem; font-weight: 800; line-height: 1.2; font-variant-numeric: tabular-nums; vertical-align: middle; }
+.stack-sum .sn { text-align: right; white-space: nowrap; }
+.stack-sum .so { color: var(--brand); text-align: left; }
+.stack-sum .sr { grid-column: 1 / -1; height: 4px; background: var(--ink); border-radius: 2px; margin: 0.15rem 0 0.25rem; }
+.stack-sum .sa .qbox { margin: 0; }
+.stack-sum .ghost { visibility: hidden; }
+.q-prompt > .stack-sum { display: grid; width: max-content; }
+
+/* Worked examples after a miss */
+.fb-given { margin-top: 0.2rem; }
+.worked { margin-top: 0.8rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.ex-title { font-weight: 800; }
+.worked-ex { background: var(--card); border-radius: 14px; padding: 0.6rem 0.8rem; box-shadow: inset 0 0 0 2px var(--line); }
+.ex-label { font-size: 0.8rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.ex-prompt { text-align: center; font-weight: 600; margin: 0.2rem 0; overflow-x: auto; }
+.ex-prompt .big-num, .ex-prompt .stack-sum { font-size: 1.4rem; }
+.ex-prompt .seq { font-size: 1.3rem; }
+.ex-prompt .count-pics { font-size: 1.5rem; }
+.ex-prompt .q-hint.block { display: none; }
+.ex-ans, .ex-prompt .stack-sum .sa { color: var(--good); }
+.viz-wrap.small .viz { max-height: 110px; width: auto; }
+.ex-choices { display: flex; flex-wrap: wrap; gap: 0.3rem; justify-content: center; margin: 0.2rem 0; }
+.ex-chip { padding: 0.1rem 0.6rem; border-radius: 999px; background: var(--bg2); font-weight: 700; font-size: 0.95rem; }
+.ex-chip.ok { background: var(--good); color: #fff; }
+.ex-answer { text-align: center; }
+.ex-steps { margin: 0.3rem 0 0; padding-left: 1.3rem; font-size: 0.95rem; }
+.ex-steps li { margin: 0.15rem 0; }
 
 /* ---------- Column arithmetic ---------- */
 .col-wrap { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding: 0.4rem 0; }
