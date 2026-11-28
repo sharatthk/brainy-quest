@@ -3,6 +3,7 @@
 import { randInt, pick, shuffle, gcd } from '../shared/util.js';
 
 import { MIDDLE_UNITS, MIDDLE_SKILLS } from './middle.js';
+import { MIDDLE2_SKILLS } from './middle2.js';
 import { gradeOf, playerGrade, belowGrade } from './grades.js';
 import { recentAccuracy } from '../shared/mastery.js';
 
@@ -1089,6 +1090,7 @@ export const SKILLS = [
   S('alg-expr', 'alg', 'Work out expressions', '📐', ['alg-one'], 'If x = 3, what is 4x + 5?', rng => genExpr(rng, 1)),
   S('alg-rule', 'alg', 'Find the rule', '🔁', ['alg-missing'], 'In → Out tables', rng => genRule(rng, 1)),
   ...MIDDLE_SKILLS,
+  ...MIDDLE2_SKILLS,
 ];
 
 export const skillById = id => SKILLS.find(s => s.id === id);

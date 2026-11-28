@@ -24,6 +24,10 @@ export const SKILL_GRADE = {
   'geo-angles': 7, 'geo-area': 6, 'geo-circle': 7, 'geo-volume': 7, 'geo-pythag': 8, 'geo-scale': 7,
   'stats-center': 6, 'stats-prob': 7,
   'graph-points': 6, 'graph-slope': 8, 'graph-linear': 8,
+  'num-types': 8, 'frac-mixed': 4, 'money-commission': 7, 'alg-props': 6, 'alg-both': 8, 'alg-words': 7,
+  'geo-basics': 4, 'geo-shapes': 5, 'geo-3d': 6, 'geo-volume2': 8, 'geo-transversal': 8,
+  'stats-sample': 7, 'stats-spread': 6, 'stats-displays': 6, 'stats-compound': 7,
+  'graph-functions': 8, 'graph-systems': 8, 'graph-nonlinear': 8, 'graph-polygons': 6, 'graph-transform': 8,
 };
 
 export const gradeOf = skill => SKILL_GRADE[skill.id] ?? 1;

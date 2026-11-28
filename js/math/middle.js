@@ -613,3 +613,6 @@ const textSteps = t => ({ ...t, gen: rng => { const p = t.gen(rng); return { ...
 const TIERS_OF = Object.fromEntries(DEFS.map(d => [d.id, d.tiers.map(textSteps)]));
 export const MIDDLE_SKILLS = DEFS.map(({ tiers, ...s }) => ({ ...s, gen: TIERS_OF[s.id][1].gen }));
 export const MIDDLE_TIERS = TIERS_OF;
+
+// Shared with js/math/middle2.js.
+export { until, frac, big, neg, paren, money, round2, fmt, nz, int, num, dec, choice, X };

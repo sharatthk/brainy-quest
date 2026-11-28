@@ -1354,14 +1354,15 @@ def t_smoke(f):
     f.shot('smoke-last')
 
 
-def t_middle_math(f):
-    """Middle school math (integers, ratios, money, exponents, geometry, statistics, graphs): every tier, a miss each, negative answers."""
-    new_player(f, 'Mia')
-    f.goto('/math')
-    units = ' '.join(f.page.locator('.unit-title').all_inner_texts())
-    for u in ('Ratios & Rates', 'Percents & Money', 'Integers', 'Geometry', 'Statistics & Probability', 'Graphs & Functions'):
-        f.check(u in units, f'map lacks the {u} unit')
-    for sid in MIDDLE_MATH:
+MIDDLE_MATH2 = ['num-types', 'frac-mixed', 'money-commission', 'alg-props', 'alg-both', 'alg-words', 'geo-basics', 'geo-shapes', 'geo-3d',
+                'geo-volume2', 'geo-transversal', 'stats-sample', 'stats-spread', 'stats-displays', 'stats-compound', 'graph-functions',
+                'graph-systems', 'graph-nonlinear', 'graph-polygons', 'graph-transform']
+NEW_ENGLISH = ['pronoun-case', 'verbals', 'verb-moods', 'reference', 'genres', 'summary', 'poetry', 'nonfiction-types', 'research', 'writing-process']
+
+
+def play_skill_tiers(f, skills):
+    """Every tier of each skill once: right on ★ and ★★, a miss on ★★★ that must wait for Got it."""
+    for sid in skills:
         for tier in (1, 2, 3):
             f.goto(f'/math/play/practice/{sid}/{tier}', wait='.stage .q-card')
             card = f.page.locator('.stage .q-card').last
@@ -1378,6 +1379,26 @@ def t_middle_math(f):
             else:
                 f.wait_good()
             f.wait_next()
+
+
+def t_book_topics(f):
+    """The second batch of middle school topics: 20 math skills (every tier) and 10 English units (a Warm-up each)."""
+    new_player(f, 'Ivy')
+    play_skill_tiers(f, MIDDLE_MATH2)
+    for unit in NEW_ENGLISH:
+        f.goto(f'/english/quiz/{unit}/1', wait='.stage .q-card')
+        play_eng(f, unit, wrong=(1,), warmup=True)
+        f.check('★' in results_text(f), f'{unit}: Warm-up did not reach results')
+
+
+def t_middle_math(f):
+    """Middle school math (integers, ratios, money, exponents, geometry, statistics, graphs): every tier, a miss each, negative answers."""
+    new_player(f, 'Mia')
+    f.goto('/math')
+    units = ' '.join(f.page.locator('.unit-title').all_inner_texts())
+    for u in ('Ratios & Rates', 'Percents & Money', 'Integers', 'Geometry', 'Statistics & Probability', 'Graphs & Functions'):
+        f.check(u in units, f'map lacks the {u} unit')
+    play_skill_tiers(f, MIDDLE_MATH)
     # A negative answer typed with a minus sign is accepted
     f.goto('/math/play/practice/int-add/1', wait='.stage .q-card')
     o = math_oracle(f, skill='int-add', tier=1)
@@ -1498,15 +1519,17 @@ TESTS = [
     ('middle_math', t_middle_math),
     ('walk_through', t_walk_through),
     ('smoke', t_smoke),
+    ('book_topics', t_book_topics),
 ]
 
 
 # Which flows cover which files, for --changed. First match wins; a file matching nothing runs everything.
-MATH = ['math_map', 'math_practice_tiers', 'math_non_column', 'math_coach_mix_gym', 'speed', 'new_math', 'middle_math', 'walk_through']
-LESSONS = ['english', 'lesson_subjects']
+MATH = ['math_map', 'math_practice_tiers', 'math_non_column', 'math_coach_mix_gym', 'speed', 'new_math', 'middle_math', 'walk_through', 'book_topics']
+LESSONS = ['english', 'lesson_subjects', 'book_topics']
 AFFECTS = [
     (r'^(README\.md|IMPROVEMENTS\.md|CLAUDE\.md|\.claude/|tools/|tests/[^/]+\.test\.mjs$|tests/e2e/(README\.md|shots/))', []),
-    (r'^js/math/middle\.js$', ['math_map', 'middle_math']),
+    (r'^js/math/middle\.js$', ['math_map', 'middle_math', 'book_topics']),
+    (r'^js/math/middle2\.js$', ['math_map', 'book_topics']),
     (r'^js/math/(speed)\.js$', ['speed']),
     (r'^js/math/(column|guided)\.js$', ['math_practice_tiers', 'math_coach_mix_gym']),
     (r'^js/math/walk\.js$', ['walk_through']),

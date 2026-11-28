@@ -14,6 +14,7 @@ export const UNIT_GRADE = {
   plot: 5, theme: 6, pov: 6, character: 6, 'setting-mood': 7,
   'text-structure': 6, 'purpose-evidence': 6,
   argument: 7, narrative: 5, informative: 6, transitions: 5,
+  'pronoun-case': 6, verbals: 8, 'verb-moods': 8, reference: 4, genres: 5, summary: 6, poetry: 5, 'nonfiction-types': 5, research: 6, 'writing-process': 4,
   // Science
   'sci-method': 3, 'measure-data': 4, states: 2, atoms: 7, compounds: 7, changes: 6,
   motion: 7, forces: 5, energy: 6, waves: 4, electricity: 6,

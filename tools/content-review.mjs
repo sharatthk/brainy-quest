@@ -87,12 +87,14 @@ function reviewMath() {
         if (shown.length < SHOW) shown.push(p);
       }
       if (thin > SAMPLES * 0.5) warn(where, `${thin}/${SAMPLES} explanations are a single short step: add a why or a check step`);
-      if (trivial > SAMPLES * 0.05) warn(where, `${trivial}/${SAMPLES} problems use 0 or 1 (too easy?)`);
+      const ZERO_ONE_BY_NATURE = ['alg-props 1']; // the identity property is about + 0 and × 1
+      if (trivial > SAMPLES * 0.05 && !ZERO_ONE_BY_NATURE.includes(`${s.id} ${t}`)) warn(where, `${trivial}/${SAMPLES} problems use 0 or 1 (too easy?)`);
       if (noResult > SAMPLES * 0.3) readOnlyWalk.push(`${s.id}★${t}`);
       if (inline) warn(where, `${inline} + or − problems are written inline: use stacked() so the numbers are one below the other`);
       if (longBig) warn(where, `${longBig} × or ÷ problems show millions as digits: use K / M / B symbols (shortBig)`);
       // Tiers whose topic only has a handful of problems (sums to 5, halves and thirds, √ of small squares, 2³).
-      const SMALL_BY_NATURE = ['basic-add 1', 'basic-sub 1', 'basic-bonds 1', 'frac-id 1', 'frac-equiv 1', 'expo-pow 1', 'expo-roots 1'];
+      // ... and vocabulary tiers (name the shape, the line, the kind of question), where the choices vary but the wording repeats.
+      const SMALL_BY_NATURE = ['basic-add 1', 'basic-sub 1', 'basic-bonds 1', 'frac-id 1', 'frac-equiv 1', 'expo-pow 1', 'expo-roots 1', 'geo-basics 1', 'geo-basics 2', 'geo-shapes 3', 'stats-sample 1', 'geo-volume2 3'];
       if (seen.size < Math.min(15, SAMPLES / 4)) {
         if (SMALL_BY_NATURE.includes(`${s.id} ${t}`)) console.log(`INFO  ${where}: ${seen.size} different problems (a small topic by nature)`);
         else warn(where, `only ${seen.size} different problems in ${SAMPLES}: too repetitive`);

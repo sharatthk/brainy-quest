@@ -4,15 +4,17 @@ Proposals from the end of each working session (see CLAUDE.md). Pick one with "d
 
 ## Pending
 
-1. **Math book gaps.** Compared with the Math study guide's 63 chapters, missing or thin: types of numbers (rational, irrational), proper and improper fractions and mixed numbers, commission, properties (commutative, associative, distributive), multistep equations with x on both sides, word problems with equations, intro geometry (points, lines, rays), classifying triangles and quadrilaterals, 3D figures, volume of cones, pyramids and spheres, transversals, statistical questions and samples, mode, MAD and IQR, data displays, relations and functions, systems of equations, nonlinear functions, polygons on the coordinate plane, translations, rotations and dilations.
-   - Proposed: 2026-11-28, from the coverage check.
-2. **English book gaps.** Compared with the English study guide's 32 chapters, missing or thin: intensive pronouns, verbals (gerunds, participles, infinitives), verb moods, reference materials, types of fiction (genres), objective summary, poetry, types of nonfiction, research for writing (sources, citing, plagiarism), and the writing process (draft, revise, edit).
+1. **Science book check.** The Science study guide was not in the batch of books, so Science Lab was only checked against a keyword list (only the electromagnetic spectrum looked missing). Check it against the book's chapter list.
    - Proposed: 2026-11-28.
-3. **Science book check.** The Science study guide was not in the last batch of books, so Science Lab was only checked against a keyword list (only the electromagnetic spectrum looked missing). Check it against the book's chapter list.
+2. **Coverage check as a tool.** The book comparison was a one-off script. Keep a small committed checklist of chapter topics (topic names only, no book text) and a `content-review --coverage` mode that maps each topic to the skills and units that teach it, so gaps show up when content changes.
+   - Proposed: 2026-11-28, after the book coverage batch.
+3. **Pictures for geometry words.** Points, lines, rays, transversals and quadrilaterals are taught with words only. Small SVG drawings (like the new dot plots and box plots) would make those questions much easier to picture.
    - Proposed: 2026-11-28.
 
 ## Done
 
+- **Math book gaps**: 20 new skills in `js/math/middle2.js` (types of numbers, mixed numbers, commission, properties, x on both sides, equation word problems, geometry basics, triangles and quadrilaterals, 3D figures, pyramids, cones and spheres, transversals, samples, mode, IQR and MAD, dot plots, histograms and box plots, compound probability, functions, systems, nonlinear functions, shapes on a grid, transformations). Proposed 2026-11-28. Shipped in the "Cover the full middle school checklist" commit.
+- **English book gaps**: 10 new units (subject, object and -self pronouns, verbals, verb moods, dictionary and thesaurus, types of fiction, objective summaries, poetry, types of nonfiction, research skills, the writing process). Same commit.
 - **Weekly view across devices**: when two devices both changed a player, sync keeps the one with more progress but adds the This week logs together (`mergeDays`, `combineProfile` in `js/sync/merge.js`). Proposed 2026-11-28. Shipped in the "Sync keeps both devices' activity, lesson gaps, live smoke action" commit.
 - **Lesson gaps too**: This week lists English, Science and Coding units to review (earlier-grade units not at ★★, or low quiz scores), each linking to its Quiz. Same commit.
 - **Smoke check in CI**: `.github/workflows/live-smoke.yml` runs `--smoke` against the live site after every Pages build. Same commit.
