@@ -4,15 +4,18 @@ Proposals from the end of each working session (see CLAUDE.md). Pick one with "d
 
 ## Pending
 
-1. **Walk-through for reading questions.** 48 math tiers (compare, quadrants, median, GCF and others) have no `= result` step, so their walk-through only lets the kid read and tap Next. Give those generators a small "you do it" step, like "Which is bigger: 0.5 or 0.45?" in the middle of the steps, as a choice inside the walk.
-   - Proposed: 2026-11-27, after the walk-through release.
-2. **Grade-aware lessons.** The grade now moves math suggestions and quest sizes but not English, Science or Coding. Give lesson sections a grade like math skills and use it for the suggested next unit on each subject page.
+1. **Pushes need a human.** The auto-mode permission check blocks `git push origin main`, so every release stops until someone runs it by hand. Add a permission rule for that one command (the `update-config` skill), or deploy from a release branch through a PR that the owner merges.
+   - Proposed: 2026-11-27, after two releases sat unpushed.
+2. **Picture questions in the walk-through.** 18 tiers (fraction pictures, number lines, quadrants, median, dice) still give the walk-through nothing to type. Add a small "count the parts" or "which side of 0" choice step to those generators.
    - Proposed: 2026-11-27.
-3. **One command for the release checks.** Each release runs unit tests, `content-review`, the browser suite, commit, push and a live check by hand. A `tools/release-check.sh` that runs the first three and prints one summary would make the `deploy-pages` skill shorter and harder to skip steps in.
+3. **Parent view of the grade path.** The Grown-ups corner shows stars and trouble spots, but not how the player is doing against their grade. Add "on grade / ahead / catching up" per subject, using the skill and unit grades.
    - Proposed: 2026-11-27.
 
 ## Done
 
+- **Walk-through for reading questions**: the walk-through also asks for a worked-out number when a step has no `= result` (the last number in the step that is not in the problem). Tiers with nothing to ask went from 48 to 18. Proposed 2026-11-27. Shipped in the "Grade-aware lessons, smarter walk-through, release check" commit.
+- **Grade-aware lessons**: every English, Science and Coding unit has a grade (`js/lessons/grades.js`); "Next up" and the ✨ Next badge follow the player's grade. Same commit.
+- **One command for the release checks**: `tools/release-check.sh` runs unit tests, content review and the browser suite with one summary; the `deploy-pages` skill uses it. Same commit.
 - **Speed Challenge test in seconds**: Playwright fake clock for the speed flow (fast-forwards the paused-clock check and the end of the round, keeps one real-time tick check). 78 s to 21 s. Proposed 2026-11-27. Shipped in the "Walk-through retries, grade at sign-up" commit.
 - **Explain-it-back for repeat misses**: a 2nd miss on the same skill turns the retry into a walk-through (`js/math/walk.js`); column skills get Coach mode. Same commit.
 - **Grade on the profile picker**: optional grade chips when creating a player. Same commit.

@@ -303,6 +303,11 @@ test('walk-through: each step is split at the result after its last "="', async 
   assert.equal(stepBlank('6 − 20 = −14, so it is negative.').expect, '−14');
   assert.equal(stepBlank('So 1,200 people came = 1,200.').expect, '1,200');
   assert.equal(stepBlank('Start at the bigger number.'), null);
+  const { givenNumbers } = await import('../js/math/walk.js');
+  const cmp = { prompt: 'Which number is <b>bigger</b>?', choices: ['51', '44'] };
+  assert.equal(stepBlank('Look at the tens first: 51 has 5 tens and 44 has 4 tens.', givenNumbers(cmp)).expect, '4', 'no "=": the last number not in the problem');
+  assert.equal(stepBlank('Both 51 and 44 are 2-digit numbers.', givenNumbers(cmp)), null, 'only problem numbers and tiny counts: nothing to ask');
+  assert.ok(givenNumbers({ prompt: 'Is <b>14</b> a solution of <span>x < 12</span>?' }).has(12), 'a raw < is not a tag');
   assert.ok(sameNumber('1200', '1,200') && sameNumber('-5', '−5') && sameNumber('2.5', '$2.50') && !sameNumber('', '0') && !sameNumber('13', '12'));
   // Every step of every tier renders as plain text (no HTML), so the walk-through can show it.
   const r = seeded(12);

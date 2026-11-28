@@ -12,6 +12,7 @@ import { SKILLS } from '../js/math/skills.js';
 import { genAt, tierLabel } from '../js/math/tiers.js';
 import { answerText } from '../js/math/skills.js';
 import { seeded } from '../js/shared/util.js';
+import { stepBlank, givenNumbers } from '../js/math/walk.js';
 import { SUBJECTS } from '../js/lessons/subjects.js';
 import { BUILTIN_LISTS } from '../js/spelling/words.js';
 
@@ -51,7 +52,7 @@ const copied = (where, text) => {
 
 // ---- Math: every skill x tier ----
 function reviewMath() {
-  const readOnlyWalk = []; // tiers whose steps have no "= result" for the walk-through to ask
+  const readOnlyWalk = []; // tiers where the walk-through finds nothing to ask (see stepBlank in js/math/walk.js)
   for (const s of SKILLS) {
     if (onlySkills && !onlySkills.includes(s.id)) continue;
     for (const t of [1, 2, 3]) {
@@ -82,7 +83,7 @@ function reviewMath() {
         if (!String(p.prompt).includes('class="frac"') && /(^|[^\d.])[01] [×÷]|[×÷] \(?−?[01]\)?(?![\d.])|[+−] 0(?![\d.])/.test(txt)) trivial++;
         if (p.kind !== 'column' && !String(p.prompt).includes('stack-sum') && /^\d[\d,.]*\s*[+−]\s*\d[\d,.]*\s*= \?$/.test(txt)) inline++;
         if (s.unit === 'big' && /[×÷]/.test(txt) && /\d{1,3},\d{3},\d{3}/.test(txt)) longBig++;
-        if (p.kind !== 'column' && !(p.steps || []).some(st => /= [−-]?\$?\d/.test(st))) noResult++;
+        if (p.kind !== 'column' && !(p.steps || []).some(st => stepBlank(st, givenNumbers(p)))) noResult++;
         if (shown.length < SHOW) shown.push(p);
       }
       if (thin > SAMPLES * 0.5) warn(where, `${thin}/${SAMPLES} explanations are a single short step: add a why or a check step`);
@@ -102,7 +103,7 @@ function reviewMath() {
       }
     }
   }
-  if (readOnlyWalk.length) console.log(`INFO  ${readOnlyWalk.length} tiers have no "= result" step (compare, name or pick problems): their walk-through steps are read, not typed${SHOW ? `: ${readOnlyWalk.join(', ')}` : ''}.`);
+  if (readOnlyWalk.length) console.log(`INFO  ${readOnlyWalk.length} tiers give the walk-through nothing to work out (steps are read, not typed): ${readOnlyWalk.join(', ')}.`);
 }
 
 // ---- Lessons: English, Science, Coding ----

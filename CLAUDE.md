@@ -6,6 +6,7 @@ Gamified math, English and spelling PWA for kids (about 6 to 11). Vanilla JS ES 
 - Unit tests: `node --test tests/*.test.mjs`
 - Browser regression suite (tests/e2e, Python Playwright, phone + desktop): the `regression-test` skill. `--changed` runs only the flows your changes touch; run the full suite before every deploy.
 - Adding skills, units, word lists: the `add-content` skill; review content with the `content-review` skill (`node tools/content-review.mjs`)
+- Release checks in one command: `tools/release-check.sh` (`--changed` while working)
 - Deploying to GitHub Pages: the `deploy-pages` skill
 
 ## Conventions

@@ -234,3 +234,17 @@ test('a missed lesson question gets 2 solved examples from its unit, never ones 
   assert.deepEqual(solved({ t: 'fill', q: 'Q', s: 'Fish can ___ fast.', a: ['swim'] }).sentence, 'Fish can [[swim]] fast.');
   assert.equal(solved({ t: 'tap', q: 'Q', s: 'The frog jumps.', a: ['frog'] }).sentence, 'The [[frog]] jumps.');
 });
+
+test('lesson grade paths: every unit has a grade; Next up follows the player grade', async () => {
+  const { SUBJECTS } = await import('../js/lessons/subjects.js');
+  const { UNIT_GRADE, suggestedUnit, unitGrade } = await import('../js/lessons/grades.js');
+  const all = SUBJECTS.flatMap(s => s.units);
+  for (const u of all) assert.ok(UNIT_GRADE[u.id] >= 1 && UNIT_GRADE[u.id] <= 8, `${u.id} has a grade`);
+  assert.equal(Object.keys(UNIT_GRADE).length, all.length, 'no stale unit grades');
+  const eng = SUBJECTS.find(s => s.id === 'english').units;
+  assert.equal(suggestedUnit(eng, {}).id, 'abc', 'no grade: the first unit');
+  assert.equal(unitGrade(suggestedUnit(eng, {}, 5)), 5, '5th grade: a 5th grade unit');
+  const recs = Object.fromEntries(eng.filter(u => unitGrade(u) === 8).map(u => [u.id, { stars: 2 }]));
+  assert.equal(unitGrade(suggestedUnit(eng, recs, 8)), 7, '8th grade done: one grade down');
+  for (const s of SUBJECTS) for (let g = 1; g <= 8; g++) assert.ok(suggestedUnit(s.units, {}, g), `${s.id} has a unit for grade ${g}`);
+});

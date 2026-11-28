@@ -1379,6 +1379,18 @@ def t_quests_stickers(f):
 def t_lesson_subjects(f):
     """Science Lab and Code Club: home card, subject home, lesson cards, a Warm-up quiz to a star, code blocks."""
     new_player(f, 'Leo')
+    # Grade path: a 6th grader's Next up is a 6th grade unit, with the ✨ Next badge on its tile.
+    f.goto('/english')
+    f.check(f.page.locator('.skill.suggested', has_text='ABC Order').count() == 1, 'no grade: ✨ Next is not on the first English unit')
+    p = cur_profile(f)
+    set_profile_fields(f, settings={**p['settings'], 'grade': 6})
+    f.goto('/english')
+    nxt = f.page.locator('.quick.mix').inner_text()
+    f.check('Next up for 6th grade' in nxt, f'Next up does not mention the grade: {nxt!r}')
+    want = f.page.evaluate("async () => { const L = await import(new URL('js/lessons/grades.js', location.href.split('#')[0])); const S = await import(new URL('js/lessons/subjects.js', location.href.split('#')[0])); return L.suggestedUnit(S.subjectById('english').units, {}, 6).title; }")
+    f.check(want in nxt and f.page.locator('.skill.suggested').inner_text().find(want) >= 0, f'Next up {nxt!r} / badge is not the 6th grade unit {want!r}')
+    f.shot('english-grade6')
+    set_profile_fields(f, settings={**p['settings'], 'grade': 0})
     for subj, title in (('science', 'Science Lab'), ('coding', 'Code Club')):
         f.goto('/')
         card = f.page.locator('.hub-card', has_text=title)

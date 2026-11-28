@@ -2,6 +2,8 @@
 // One engine for every subject in js/lessons/subjects.js; each keeps its progress in p[subject.id].
 import { h, onEnter, advanceDelay } from '../ui.js';
 import { lessonExamples } from './examples.js';
+import { suggestedUnit } from './grades.js';
+import { playerGrade, gradeName } from '../math/grades.js';
 import { screen, stars, sessionFrame, resultsView, cheer, praise, tierList, starText } from '../views/common.js';
 import { profile, save } from '../store.js';
 import { cleanWord, normalizeText } from '../english/content.js';
@@ -38,12 +40,13 @@ export function lessonViews(subj) {
     const units = book(p, subj).units;
     const reviews = dueReviews(p);
     const passed = subj.units.filter(u => (units[u.id]?.stars || 0) > 0).length;
-    const nextUp = subj.units.find(u => !(units[u.id]?.stars >= 2));
+    const grade = playerGrade(p);
+    const nextUp = suggestedUnit(subj.units, units, grade);
     const main = screen({ title: subj.title, back: '#/' });
     main.append(
       h('div', { class: 'quest-head' }, h('div', {}, h('h2', {}, 'Learn, then quiz yourself'), h('p', { class: 'muted' }, `${passed} of ${subj.units.length} units passed. Each unit has ★ Warm-up, ★★ Quiz and ★★★ Expert.`))),
       h('div', { class: 'quick-row' },
-        nextUp ? h('a', { class: 'quick mix', href: `#${base}/unit/${nextUp.id}` }, h('span', { class: 'quick-emoji' }, nextUp.emoji), h('span', {}, h('b', {}, 'Next up'), h('small', {}, nextUp.title))) : null,
+        nextUp ? h('a', { class: 'quick mix', href: `#${base}/unit/${nextUp.id}` }, h('span', { class: 'quick-emoji' }, nextUp.emoji), h('span', {}, h('b', {}, grade ? `Next up for ${gradeName(grade)}` : 'Next up'), h('small', {}, nextUp.title))) : null,
         h('a', { class: `quick gym ${reviews.length ? '' : 'dim'}`, href: reviews.length ? `#${base}/review` : null, 'aria-disabled': reviews.length ? null : 'true' },
           h('span', { class: 'quick-emoji' }, '🔁'), h('span', {}, h('b', {}, `Fix my mistakes (${reviews.length})`), h('small', {}, reviews.length ? 'Questions you missed, ready for another try' : 'Nothing to review right now')))));
     for (const sec of subj.sections) {
@@ -53,7 +56,8 @@ export function lessonViews(subj) {
         h('h3', { class: 'unit-title' }, `${sec.emoji} ${sec.title}`),
         h('div', { class: 'skill-grid' }, list.map(u => {
           const r = units[u.id];
-          return h('a', { class: `skill eng ${r?.stars === 3 ? 'gold' : ''}`, href: `#${base}/unit/${u.id}` },
+          return h('a', { class: `skill eng ${r?.stars === 3 ? 'gold' : ''} ${u === nextUp ? 'suggested' : ''}`, href: `#${base}/unit/${u.id}` },
+            u === nextUp ? h('span', { class: 'next-badge' }, '✨ Next') : null,
             h('span', { class: 'skill-emoji' }, u.emoji), h('span', { class: 'skill-title' }, u.title), stars(r?.stars || 0));
         }))));
     }
