@@ -295,3 +295,16 @@ test('grade paths: every skill has a grade; the grade moves suggestions and reac
   started.math.skills['basic-add'] = { attempts: 3, stars: 0 };
   assert.equal(suggestedSkill(SKILLS.filter(s => s.unit === 'basic'), started).id, 'basic-add', 'a started skill below grade is still suggested');
 });
+
+test('walk-through: each step is split at the result after its last "="', async () => {
+  const { stepBlank, sameNumber } = await import('../js/math/walk.js');
+  assert.deepEqual(stepBlank('Multiply the front digits: 4 × 3 = 12.'), { before: 'Multiply the front digits: 4 × 3 = ', expect: '12', after: '.' });
+  assert.equal(stepBlank('Miles ÷ hours = 120 ÷ 4 = 30.').expect, '30');
+  assert.equal(stepBlank('6 − 20 = −14, so it is negative.').expect, '−14');
+  assert.equal(stepBlank('So 1,200 people came = 1,200.').expect, '1,200');
+  assert.equal(stepBlank('Start at the bigger number.'), null);
+  assert.ok(sameNumber('1200', '1,200') && sameNumber('-5', '−5') && sameNumber('2.5', '$2.50') && !sameNumber('', '0') && !sameNumber('13', '12'));
+  // Every step of every tier renders as plain text (no HTML), so the walk-through can show it.
+  const r = seeded(12);
+  for (const s of SKILLS) for (const t of [1, 2, 3]) for (const st of genAt(s, t, r).steps) assert.ok(!/<[a-z/]/i.test(st), `${s.id}★${t}: ${st}`);
+});

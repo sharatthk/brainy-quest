@@ -2,6 +2,7 @@
 import { h, onEnter } from '../ui.js';
 import { screen } from './common.js';
 import { profile, getState, createProfile, switchProfile } from '../store.js';
+import { GRADES, gradeName } from '../math/grades.js';
 import { levelProgress, currentStreak, dailyXp } from '../shared/rewards.js';
 import { SKILLS } from '../math/skills.js';
 import { SUBJECTS } from '../lessons/subjects.js';
@@ -71,6 +72,12 @@ export function viewProfiles() {
     picks.querySelectorAll('button').forEach(b => b.classList.remove('on'));
     e.currentTarget.classList.add('on');
   } }, a)));
+  // Optional: the grade sets where math suggestions start (js/math/grades.js). Tap again to clear.
+  let grade = 0;
+  const grades = h('div', { class: 'grade-chips', role: 'group', 'aria-label': 'Grade' }, GRADES.map(g => h('button', { type: 'button', 'aria-pressed': 'false', onclick: e => {
+    grade = grade === g ? 0 : g;
+    grades.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === e.currentTarget && grade === g)));
+  } }, gradeName(g).replace(' grade', ''))));
   const create = () => {
     if (!name.value.trim()) {
       name.focus();
@@ -78,7 +85,7 @@ export function viewProfiles() {
       setTimeout(() => name.classList.remove('shake'), 400);
       return;
     }
-    createProfile(name.value.trim(), avatar);
+    createProfile(name.value.trim(), avatar, grade);
     go('/');
   };
   onEnter(name, create);
@@ -86,6 +93,7 @@ export function viewProfiles() {
     h('h2', {}, st.profiles.length ? 'Add a new player' : 'Welcome to Brainy Quest! 🎉'),
     st.profiles.length ? null : h('p', { class: 'muted' }, 'Learn math, English and spelling. Earn coins, level up and collect trophies!'),
     name, h('p', { class: 'small muted' }, 'Pick your buddy:'), picks,
+    h('p', { class: 'small muted' }, 'What grade are you in? (you can skip this)'), grades,
     h('button', { class: 'btn big', onclick: create }, "Let's go! 🚀")));
   const sync = syncCard({ compact: true });
   if (sync) main.append(sync);

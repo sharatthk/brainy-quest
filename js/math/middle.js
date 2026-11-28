@@ -606,5 +606,10 @@ const DEFS = [
     [T('Find y', r => genLinear(r, 1)), T('Find x', r => genLinear(r, 2)), T('Proportional tables', r => genLinear(r, 3))]),
 ];
 
-export const MIDDLE_SKILLS = DEFS.map(({ tiers, ...s }) => ({ ...s, gen: tiers[1].gen }));
-export const MIDDLE_TIERS = Object.fromEntries(DEFS.map(d => [d.id, d.tiers]));
+// Steps are shown as plain text, so exponents written with <sup> become ² ³ ... there.
+const SUPS = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+export const plainSteps = steps => steps.map(st => st.replace(/<sup>(\d+)<\/sup>/g, (_, d) => [...d].map(c => SUPS[c]).join('')));
+const textSteps = t => ({ ...t, gen: rng => { const p = t.gen(rng); return { ...p, steps: plainSteps(p.steps) }; } });
+const TIERS_OF = Object.fromEntries(DEFS.map(d => [d.id, d.tiers.map(textSteps)]));
+export const MIDDLE_SKILLS = DEFS.map(({ tiers, ...s }) => ({ ...s, gen: TIERS_OF[s.id][1].gen }));
+export const MIDDLE_TIERS = TIERS_OF;

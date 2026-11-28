@@ -51,13 +51,14 @@ const copied = (where, text) => {
 
 // ---- Math: every skill x tier ----
 function reviewMath() {
+  const readOnlyWalk = []; // tiers whose steps have no "= result" for the walk-through to ask
   for (const s of SKILLS) {
     if (onlySkills && !onlySkills.includes(s.id)) continue;
     for (const t of [1, 2, 3]) {
       const where = `math ${s.id} ★${t} (${tierLabel(s, t)})`;
       const rng = seeded(1000 + t);
       const seen = new Set();
-      let thin = 0, trivial = 0, inline = 0, longBig = 0;
+      let thin = 0, trivial = 0, inline = 0, longBig = 0, noResult = 0;
       const shown = [];
       for (let i = 0; i < SAMPLES; i++) {
         let p;
@@ -70,6 +71,7 @@ function reviewMath() {
         const txt = plain(p.prompt ?? `${p.a} ${p.op} ${p.b}`);
         seen.add(`${txt}|${answerText(p)}`);
         if (!p.steps?.length) err(where, `no steps for "${txt}"`);
+        if ((p.steps || []).some(st => /<[a-z/]/i.test(st))) err(where, `HTML in steps (they are shown as plain text): "${p.steps.find(st => /<[a-z/]/i.test(st))}"`);
         else if (p.steps.length === 1 && p.steps[0].length < 60) thin++;
         if (p.kind === 'choice') {
           if (!p.choices.includes(p.answer)) err(where, `answer "${p.answer}" not in choices for "${txt}"`);
@@ -80,10 +82,12 @@ function reviewMath() {
         if (!String(p.prompt).includes('class="frac"') && /(^|[^\d.])[01] [×÷]|[×÷] \(?−?[01]\)?(?![\d.])|[+−] 0(?![\d.])/.test(txt)) trivial++;
         if (p.kind !== 'column' && !String(p.prompt).includes('stack-sum') && /^\d[\d,.]*\s*[+−]\s*\d[\d,.]*\s*= \?$/.test(txt)) inline++;
         if (s.unit === 'big' && /[×÷]/.test(txt) && /\d{1,3},\d{3},\d{3}/.test(txt)) longBig++;
+        if (p.kind !== 'column' && !(p.steps || []).some(st => /= [−-]?\$?\d/.test(st))) noResult++;
         if (shown.length < SHOW) shown.push(p);
       }
       if (thin > SAMPLES * 0.5) warn(where, `${thin}/${SAMPLES} explanations are a single short step: add a why or a check step`);
       if (trivial > SAMPLES * 0.05) warn(where, `${trivial}/${SAMPLES} problems use 0 or 1 (too easy?)`);
+      if (noResult > SAMPLES * 0.3) readOnlyWalk.push(`${s.id}★${t}`);
       if (inline) warn(where, `${inline} + or − problems are written inline: use stacked() so the numbers are one below the other`);
       if (longBig) warn(where, `${longBig} × or ÷ problems show millions as digits: use K / M / B symbols (shortBig)`);
       // Tiers whose topic only has a handful of problems (sums to 5, halves and thirds, √ of small squares, 2³).
@@ -98,6 +102,7 @@ function reviewMath() {
       }
     }
   }
+  if (readOnlyWalk.length) console.log(`INFO  ${readOnlyWalk.length} tiers have no "= result" step (compare, name or pick problems): their walk-through steps are read, not typed${SHOW ? `: ${readOnlyWalk.join(', ')}` : ''}.`);
 }
 
 // ---- Lessons: English, Science, Coding ----

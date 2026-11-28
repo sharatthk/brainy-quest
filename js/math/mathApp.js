@@ -8,6 +8,7 @@ import { emptyRec, record, recentAccuracy, currentTier, passed, needToPass } fro
 import { buildQuestion, isEmptyAnswer } from './question.js';
 import { genAt, tiersOf, tierLabel } from './tiers.js';
 import { runGuided } from './guided.js';
+import { runWalk } from './walk.js';
 import { award, recordAnswer, finishSession } from '../shared/rewards.js';
 import { sfx } from '../shared/sound.js';
 import { render as rerender } from '../router.js';
@@ -132,6 +133,7 @@ export function viewPlay({ mode, skill: skillId, tier: tierParam }) {
   const f = sessionFrame({ title: cfg.title, back: '#/math' });
   const starsBefore = skill ? rec(skill.id).stars : 0;
   let planned = cfg.length, answered = 0, correct = 0, firstTry = 0, combo = 0, coins = 0, xp = 0, requeues = 0;
+  const misses = {}; // skill id -> misses this session
   const queue = [];
   let onKey = null;
 
@@ -181,10 +183,25 @@ export function viewPlay({ mode, skill: skillId, tier: tierParam }) {
 
     const fb = h('div', { class: 'feedback' });
     let done = false;
-    const qn = buildQuestion(card, pr, { onSubmit: submit });
+    const body = h('div', { class: 'q-body' });
+    card.append(body);
+    const qn = buildQuestion(body, pr, { onSubmit: submit });
     card.append(fb);
-    qn.focus();
-    onKey = qn.onKey;
+    if (item.walk && pr.kind !== 'column') {
+      // Second miss on this skill: work through the steps first, then answer the whole problem.
+      body.classList.add('walking');
+      const holder = h('div', { class: 'walk-holder' });
+      body.insertBefore(holder, [...body.children].find(el => !el.matches('.q-prompt, .viz-wrap')) || null);
+      runWalk(holder, pr, () => {
+        body.classList.remove('walking');
+        holder.append(h('p', { class: 'walk-now' }, '✨ Now you try the whole problem.'));
+        qn.focus();
+        onKey = qn.onKey;
+      });
+    } else {
+      qn.focus();
+      onKey = qn.onKey;
+    }
 
     function submit(val, choiceBtn) {
       if (done) return;
@@ -254,7 +271,11 @@ export function viewPlay({ mode, skill: skillId, tier: tierParam }) {
       if (requeues < 3) {
         requeues++;
         planned++;
-        queue.push(makeItem(item.skill, !!diag && item.skill.guided, item.tier, true));
+        // A known slip on a column skill gets Coach mode; a second miss on any skill gets the walk-through.
+        const twice = (misses[item.skill.id] = (misses[item.skill.id] || 0) + 1) >= 2;
+        const retry = makeItem(item.skill, (!!diag || twice) && !!item.skill.guided, item.tier, true);
+        retry.walk = twice && !item.skill.guided;
+        queue.push(retry);
       }
     }
     recordAnswer(ok, combo);

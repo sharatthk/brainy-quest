@@ -651,11 +651,11 @@ export function genPctOf(rng, pcts = [10, 20, 25, 50, 75, 5]) {
   const ans = (N * p) / 100;
   const how = {
     10: `10% is one tenth: ${N} ÷ 10 = ${ans}.`,
-    20: `10% of ${N} is ${N / 10}, and 20% is double that: ${ans}.`,
+    20: `10% of ${N} is ${N} ÷ 10 = ${N / 10}, and 20% is double that: ${N / 10} × 2 = ${ans}.`,
     25: `25% is one quarter: ${N} ÷ 4 = ${ans}.`,
     50: `50% is half: ${N} ÷ 2 = ${ans}.`,
     75: `25% is ${N} ÷ 4 = ${N / 4}, and 75% is three of those: ${N / 4} × 3 = ${ans}.`,
-    5: `10% of ${N} is ${N / 10}, and 5% is half of that: ${ans}.`,
+    5: `10% of ${N} is ${N} ÷ 10 = ${N / 10}, and 5% is half of that: ${N / 10} ÷ 2 = ${ans}.`,
   }[p];
   return { kind: 'input', prompt: `What is <span class="big-num">${p}%</span> of <span class="big-num">${N}</span>?`, answer: ans, steps: [`${p}% means ${p} out of every 100.`, how, `Check: ${ans} is ${p === 50 ? 'half' : p > 50 ? 'more than half' : 'less than half'} of ${N}, which makes sense for ${p}%.`] };
 }

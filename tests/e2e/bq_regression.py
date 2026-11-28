@@ -428,8 +428,11 @@ def t_profiles(f):
     f.shot('profiles-one')
     f.page.get_by_placeholder('Your name').fill('Ben')
     f.page.locator('.avatar-pick button', has_text='🐯').click()
+    f.page.locator('.grade-chips button', has_text='3rd').click()
+    f.check(f.page.locator('.grade-chips button[aria-pressed="true"]').inner_text() == '3rd', 'grade chip did not light up')
     f.page.get_by_placeholder('Your name').press('Enter')
     f.wait_text('Hi, Ben!', '.hero')
+    f.check(cur_profile(f)['settings'].get('grade') == 3, 'grade picked at sign-up was not saved')
     f.check(f.page.locator('.avatar-sm').inner_text() == '🐯', 'topbar avatar is not Ben\'s')  # text is read even when hidden
     f.goto('/profiles')
     f.check(f.page.locator('.profile-btn').count() == 2, 'profile grid does not show 2 players')
@@ -587,6 +590,9 @@ def t_math_coach_mix_gym(f):
 
 def t_speed(f):
     new_player(f, 'Sam')
+    # Fake clock (it still runs in real time): the paused-clock checks and the end of the 60 s round fast-forward
+    # instead of waiting. One real-time check below makes sure the countdown really ticks.
+    f.page.clock.install()
     f.goto('/math/speed')
     chips = f.page.locator('.topic-chip')
     units = f.page.evaluate("import(new URL('js/math/skills.js', location.href.split('#')[0])).then(m => m.UNITS.length)")
@@ -624,17 +630,23 @@ def t_speed(f):
     f.shot('speed-wrong', full=False)
     ft = card.locator('.fb.bad').inner_text()
     f.check(f'The answer is {o["answerText"]}' in ft and 'clock is paused' in ft, f'speed miss feedback: {ft!r}')
-    f.page.wait_for_timeout(4000)
+    f.page.clock.fast_forward(4000)
+    f.page.wait_for_timeout(100)
     t1 = f.page.locator('.sp-time').inner_text()
     f.check(t0 == t1, f'clock moved while paused: {t0} -> {t1}')
     f.check(card.locator('.fb.bad').count() == 1, 'the missed question left the screen while paused')
     card.get_by_role('button', name='Next ›').click()
     f.wait_next(sel)
-    f.page.wait_for_timeout(2200)
+    f.page.wait_for_timeout(2200)  # real time: the countdown must tick on its own
     t2 = f.page.locator('.sp-time').inner_text()
     f.check(int(t2) < int(t1), f'clock did not resume after Next: {t1} -> {t2}')
-    # Keep answering right until the clock runs out.
-    deadline = time.time() + 75
+    # A few more right answers, then jump to the end of the round.
+    for _ in range(3):
+        f.mark(sel)
+        math_answer(f, sel=sel, tier=3)
+        f.wait_next(sel)
+    f.page.clock.fast_forward(61_000)
+    deadline = time.time() + 20
     while not f.done() and time.time() < deadline:
         try:
             f.mark(sel)
@@ -1256,6 +1268,45 @@ def t_new_math(f):
     f.wait_good()
 
 
+def t_walk_through(f):
+    """A second miss on the same skill: the retry walks through the steps (type each result), then the kid answers it."""
+    new_player(f, 'Wes')
+    f.goto('/math/play/practice/pct-of/2', wait='.stage .q-card')
+    for k in range(2):
+        card = f.page.locator('.stage .q-card').last
+        f.mark()
+        f.check(card.locator('.walk').count() == 0, f'walk-through shown before the 2nd miss (question {k + 1})')
+        math_answer(f, right=False, skill='pct-of', tier=2)
+        card.locator('.fb.bad').wait_for(timeout=3000)
+        card.get_by_role('button', name='Got it ›').click()
+        f.wait_next()
+    card = f.page.locator('.stage .q-card').last
+    f.check(card.locator('.walk').count() == 1, 'no walk-through after missing the same skill twice')
+    f.check(not card.locator('.answer-input:not(.walk-input)').is_visible(), 'the answer box shows before the steps are done')
+    f.shot('walk-start')
+    typed = 0
+    for _ in range(12):
+        if card.locator('.walk-now').count():
+            break
+        step = card.locator('.walk-step').last
+        if step.locator('.walk-input').count():
+            # Wrong twice: the step shows the right number in red and moves on.
+            for _ in range(2):
+                step.locator('.walk-input').fill('999999')
+                step.locator('.walk-input').press('Enter')
+                f.page.wait_for_timeout(100)
+            typed += 1
+        else:
+            step.get_by_role('button', name='Next step ›').click()
+        f.page.wait_for_timeout(100)
+    f.check(card.locator('.walk-now').count() == 1, 'walk-through did not reach "Now you try the whole problem"')
+    f.check(typed >= 1 and card.locator('.walk-fix').count() == typed, f'{typed} typed steps, {card.locator(".walk-fix").count()} revealed after 2 tries')
+    f.shot('walk-done')
+    f.mark()
+    math_answer(f, right=True, skill='pct-of', tier=2)
+    f.wait_good()
+
+
 def t_middle_math(f):
     """Middle school math (integers, ratios, money, exponents, geometry, statistics, graphs): every tier, a miss each, negative answers."""
     new_player(f, 'Mia')
@@ -1386,17 +1437,19 @@ TESTS = [
     ('quests_stickers', t_quests_stickers),
     ('lesson_subjects', t_lesson_subjects),
     ('middle_math', t_middle_math),
+    ('walk_through', t_walk_through),
 ]
 
 
 # Which flows cover which files, for --changed. First match wins; a file matching nothing runs everything.
-MATH = ['math_map', 'math_practice_tiers', 'math_non_column', 'math_coach_mix_gym', 'speed', 'new_math', 'middle_math']
+MATH = ['math_map', 'math_practice_tiers', 'math_non_column', 'math_coach_mix_gym', 'speed', 'new_math', 'middle_math', 'walk_through']
 LESSONS = ['english', 'lesson_subjects']
 AFFECTS = [
     (r'^(README\.md|IMPROVEMENTS\.md|CLAUDE\.md|\.claude/|tools/|tests/[^/]+\.test\.mjs$|tests/e2e/(README\.md|shots/))', []),
     (r'^js/math/middle\.js$', ['math_map', 'middle_math']),
     (r'^js/math/(speed)\.js$', ['speed']),
     (r'^js/math/(column|guided)\.js$', ['math_practice_tiers', 'math_coach_mix_gym']),
+    (r'^js/math/walk\.js$', ['walk_through']),
     (r'^js/math/grades\.js$', ['math_map', 'math_coach_mix_gym', 'shop_trophies_parent', 'quests_stickers']),
     (r'^js/math/', MATH),
     (r'^js/(english|lessons|science|coding)/', LESSONS),
@@ -1406,6 +1459,7 @@ AFFECTS = [
     (r'^js/views/(shop|parent|syncCard)\.js$', ['shop_trophies_parent']),
     (r'^js/shared/(achievements|rewards)\.js$', ['shop_trophies_parent', 'quests_stickers']),
     (r'^js/views/(home|progressCards)\.js$', ['profiles', 'quests_stickers']),
+    (r'^js/math/grades\.js$', ['profiles']),
     (r'^js/sync/', ['persistence_routes']),
     (r'^tests/e2e/oracle\.js$', MATH + LESSONS),
 ]

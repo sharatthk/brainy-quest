@@ -61,8 +61,9 @@ export const getState = () => state;
 export const onChange = fn => listeners.add(fn);
 export const profile = () => state.profiles.find(p => p.id === state.currentId) || null;
 
-export function createProfile(name, avatar) {
+export function createProfile(name, avatar, grade = 0) {
   const p = migrate({ id: uid(), name, avatar });
+  p.settings.grade = grade;
   state.profiles.push(p);
   state.currentId = p.id;
   save();
