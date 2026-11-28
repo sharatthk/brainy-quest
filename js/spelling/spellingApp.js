@@ -5,7 +5,7 @@ import { profile, save, getState } from '../store.js';
 import { BUILTIN_LISTS } from './words.js';
 import { matchesWord, diffSpelling, parseWordList, blankWord, normalizeSpelling, splitTiers, challengeGoal } from './logic.js';
 import { newCard, grade, isDue, cardStatus, currentTier } from '../shared/mastery.js';
-import { award, recordAnswer, finishSession } from '../shared/rewards.js';
+import { award, recordAnswer, finishSession, starUp } from '../shared/rewards.js';
 import { sfx } from '../shared/sound.js';
 import { speak, speechSupported, stopSpeaking } from '../shared/speech.js';
 import { shuffle, uid } from '../shared/util.js';
@@ -350,7 +350,9 @@ export function viewChallenge({ list: listId, tier: tierParam }) {
           if (!earned && right >= goal) {
             earned = true;
             const st = (p.spelling.stars ||= {});
-            st[list.id] = Math.max(st[list.id] || 0, tier);
+            const was = st[list.id] || 0;
+            st[list.id] = Math.max(was, tier);
+            starUp('spelling', list.id, was, st[list.id]);
             sfx.levelUp();
             toast(`${starText(tier)} earned! Keep going for a big streak.`, '🐝', 2400);
           }

@@ -8,6 +8,7 @@ import { checkAchievements } from './achievements.js';
 import { ensureBuddy } from './buddy.js';
 import { questEvent, ALL_DONE_BONUS } from './quests.js';
 import { ensureStickers, giveStickers } from './stickers.js';
+import { logDay, logStar } from './activity.js';
 
 export const xpForLevel = n => 25 * n * (n - 1);
 export function levelOf(xp) {
@@ -39,6 +40,7 @@ export function award({ coins = 0, xp = 0 } = {}) {
   if (p.daily.day !== today) p.daily = { day: today, xp: 0 };
   const goalBefore = p.daily.xp >= p.settings.dailyGoal;
   p.daily.xp += xp;
+  if (xp) logDay(p, today, { xp });
   save();
   const after = levelOf(p.xp);
   if (after > before) {
@@ -51,11 +53,19 @@ export function award({ coins = 0, xp = 0 } = {}) {
   }
 }
 
+// A star tier went up (from -> to): log it for the grown-ups' weekly summary.
+export function starUp(subject, id, from, to) {
+  const p = profile();
+  logStar(p, dayKey(), subject, id, from || 0, to);
+  save();
+}
+
 export function recordAnswer(ok, combo) {
   const p = profile();
   p.stats.answered++;
   if (ok) p.stats.correct++;
   p.stats.bestCombo = Math.max(p.stats.bestCombo, combo);
+  logDay(p, dayKey(), { answered: 1, correct: ok ? 1 : 0 });
   save();
   if (ok) questUpdate({ type: 'combo', combo });
 }

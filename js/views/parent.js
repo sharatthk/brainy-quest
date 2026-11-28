@@ -2,7 +2,9 @@
 import { h, toast, onEnter } from '../ui.js';
 import { screen, stars } from './common.js';
 import { profile, save, getState, exportData, importData, deleteProfile } from '../store.js';
-import { SKILLS, UNITS } from '../math/skills.js';
+import { SKILLS, UNITS, skillById, gapSkills } from '../math/skills.js';
+import { weekSummary } from '../shared/activity.js';
+import { dayKey } from '../shared/util.js';
 import { GRADES, gradeName, playerGrade, gradeOf } from '../math/grades.js';
 import { unitGrade } from '../lessons/grades.js';
 import { gradeStatus } from '../shared/gradeReport.js';
@@ -40,6 +42,24 @@ export function viewParent() {
     h('div', { class: 'stat-row' },
       stat('Level', levelOf(p.xp)), stat('Streak', `${currentStreak(p)} days`), stat('Best streak', `${p.streak.best} days`),
       stat('Sessions', p.stats.sessions), stat('Questions', p.stats.answered), stat('Accuracy', `${acc}%`))));
+
+  // This week: activity, stars, what reached ★★, and the gaps to practice
+  const wk = weekSummary(p, dayKey());
+  const nameOf = ({ subject, id }) => {
+    if (subject === 'math') return skillById(id)?.title;
+    if (subject === 'spelling') return allLists().find(l => l.id === id)?.name;
+    return SUBJECTS.find(s => s.id === subject)?.units.find(u => u.id === id)?.title;
+  };
+  const twoStar = wk.reachedTwo.map(nameOf).filter(Boolean);
+  const gaps = gapSkills(p);
+  main.append(h('section', { class: 'card week' },
+    h('h3', {}, '📅 This week'),
+    wk.answered ? h('div', { class: 'stat-row' },
+      stat('Days played', `${wk.activeDays} of 7`), stat(`Questions, ${Math.round(wk.accuracy * 100)}% right`, wk.answered),
+      stat('XP', wk.xp), stat('Stars earned', wk.starsEarned)) : h('p', { class: 'muted' }, 'No practice in the last 7 days yet.'),
+    twoStar.length ? h('p', {}, h('b', {}, 'Reached ★★: '), twoStar.join(', ')) : null,
+    gaps.length ? h('p', {}, h('b', {}, playerGrade(p) ? 'Gaps from earlier grades: ' : 'Needs practice: '), gaps.slice(0, 6).map(s => s.title).join(', ')) : null,
+    gaps.length ? h('a', { class: 'btn alt', href: '#/math/gaps' }, `🧩 Practice the gaps (${Math.min(gaps.length, 6)} skill${gaps.length === 1 ? '' : 's'})`) : null));
 
   // Grade path: on grade, ahead or catching up, per subject
   const g = playerGrade(p);

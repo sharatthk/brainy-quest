@@ -25,6 +25,7 @@ route('/profiles', viewProfiles);
 route('/math', needProfile(viewMap));
 route('/math/mix', needProfile(() => viewPlay({ mode: 'mix' })));
 route('/math/gym', needProfile(() => viewPlay({ mode: 'gym' })));
+route('/math/gaps', needProfile(() => viewPlay({ mode: 'gaps' })));
 route('/math/play/:mode/:skill', needProfile(viewPlay));
 route('/math/play/:mode/:skill/:tier', needProfile(viewPlay));
 route('/math/speed', needProfile(viewSpeedPicker));

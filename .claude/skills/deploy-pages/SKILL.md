@@ -15,5 +15,5 @@ Live site: https://sharatthk.github.io/brainy-quest/ (GitHub Pages, legacy build
    sha=$(git rev-parse --short HEAD)
    for i in $(seq 1 30); do s=$(gh api repos/sharatthk/brainy-quest/pages/builds/latest -q '.status+" "+.commit'); case "$s" in built\ $sha*|errored*) echo "$s"; break;; esac; sleep 10; done
    ```
-5. **Verify live**: `tools/release-check.sh --base https://sharatthk.github.io/brainy-quest/` (or at least load the changed screens with the Playwright CLI) and check there are no page errors. The service worker is network-first, so a normal refresh shows the new version.
+5. **Verify live**: `tools/release-check.sh --base https://sharatthk.github.io/brainy-quest/ --smoke` (seconds: every main screen loads with no errors), plus `--only <flows>` for the features you changed (drop `--smoke` for the full suite) (or at least load the changed screens with the Playwright CLI) and check there are no page errors. The service worker is network-first, so a normal refresh shows the new version.
 6. Report the commit, the live URL, and what was verified.

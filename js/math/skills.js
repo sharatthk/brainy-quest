@@ -4,6 +4,7 @@ import { randInt, pick, shuffle, gcd } from '../shared/util.js';
 
 import { MIDDLE_UNITS, MIDDLE_SKILLS } from './middle.js';
 import { gradeOf, playerGrade, belowGrade } from './grades.js';
+import { recentAccuracy } from '../shared/mastery.js';
 
 export const COL = ['ones', 'tens', 'hundreds', 'thousands', 'ten-thousands', 'hundred-thousands'];
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
@@ -1105,4 +1106,15 @@ export function isReached(skill, p) {
 // ✨ Next in a unit: the first reached skill without ★★, skipping untouched skills far below the player's grade.
 export function suggestedSkill(list, p) {
   return list.find(s => isReached(s, p) && (p.math.skills[s.id]?.stars || 0) < 2 && !(belowGrade(s, p) && !p.math.skills[s.id]?.attempts));
+}
+
+// Skills worth practicing: with a grade, earlier-grade skills that were tried but are not at ★★ yet;
+// without one, skills tried 5+ times with under 70% recently right. Most-tried first.
+export function gapSkills(p) {
+  const recs = p.math.skills, g = playerGrade(p);
+  const tried = SKILLS.filter(s => recs[s.id]?.attempts);
+  const gaps = g
+    ? tried.filter(s => gradeOf(s) < g && (recs[s.id].stars || 0) < 2)
+    : tried.filter(s => recs[s.id].attempts >= 5 && (recentAccuracy(recs[s.id]) ?? 1) < 0.7);
+  return gaps.sort((a, b) => recs[b.id].attempts - recs[a.id].attempts);
 }

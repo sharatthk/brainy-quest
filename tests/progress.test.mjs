@@ -76,3 +76,29 @@ test('grade report: on grade, ahead, catching up', async () => {
   const r = gradeStatus([it(2, 1, 8), it(3, 0, 4), it(4, 0, 2)], 4);
   assert.deepEqual([r.status, r.gaps, r.onDone, r.onTotal], ['catching-up', 2, 0, 1]);
 });
+
+test('activity log and this week summary', async () => {
+  const { logDay, logStar, weekSummary } = await import('../js/shared/activity.js');
+  const p = {};
+  logDay(p, '2026-11-21', { answered: 10, correct: 8, xp: 20 }); // 7 days ending 11-27 start on 11-21
+  logDay(p, '2026-11-27', { answered: 5, correct: 5 });
+  logStar(p, '2026-11-27', 'math', 'add-2d-c', 1, 2);
+  logStar(p, '2026-11-27', 'math', 'add-2d-c', 2, 2); // not a step up
+  logStar(p, '2026-11-26', 'english', 'nouns', 0, 1);
+  logDay(p, '2026-11-01', { answered: 3 }); // more than a week back
+  const w = weekSummary(p, '2026-11-27');
+  assert.deepEqual([w.activeDays, w.answered, w.correct, w.xp, w.starsEarned], [2, 15, 13, 20, 2]);
+  assert.deepEqual(w.reachedTwo, [{ subject: 'math', id: 'add-2d-c' }]);
+  assert.equal(weekSummary({}, '2026-11-27').answered, 0, 'a missing log is fine');
+  for (let d = 1; d <= 40; d++) logDay(p, `2026-12-${String(d).padStart(2, '0')}`, { answered: 1 });
+  assert.ok(Object.keys(p.days).length <= 35, 'old days are dropped');
+});
+
+test('gap skills follow the grade, or weak skills without one', async () => {
+  const { gapSkills } = await import('../js/math/skills.js');
+  const p = { settings: { grade: 4 }, math: { skills: { 'add-2d-c': { attempts: 9, stars: 1, recent: [] }, 'add-3d-c1': { attempts: 4, stars: 2, recent: [] }, 'mul-2x1': { attempts: 6, stars: 0, recent: [] } } } };
+  assert.deepEqual(gapSkills(p).map(s => s.id), ['add-2d-c'], 'earlier grade, tried, not ★★ (mul-2x1 is on grade)');
+  p.settings.grade = 0;
+  p.math.skills['mul-2x1'].recent = [0, 0, 1, 0, 0];
+  assert.deepEqual(gapSkills(p).map(s => s.id), ['mul-2x1'], 'no grade: weak recent accuracy');
+});

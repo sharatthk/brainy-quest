@@ -9,7 +9,7 @@ import { profile, save } from '../store.js';
 import { cleanWord, normalizeText } from '../english/content.js';
 import { newCard, grade, isDue, currentTier } from '../shared/mastery.js';
 import { LESSON_TIERS, quizItems, needFor, passedQuiz } from './tiers.js';
-import { award, recordAnswer, finishSession } from '../shared/rewards.js';
+import { award, recordAnswer, finishSession, starUp } from '../shared/rewards.js';
 import { sfx } from '../shared/sound.js';
 import { speak, speechSupported, stopSpeaking } from '../shared/speech.js';
 import { shuffle } from '../shared/util.js';
@@ -279,6 +279,7 @@ export function lessonViews(subj) {
         r.best = Math.max(r.best, correct / total);
         if (passedQuiz(tier, correct, total)) {
           r.stars = Math.max(r.stars, tier);
+          starUp(subj.id, unit.id, before, r.stars);
           const fresh = r.stars > before;
           if (fresh) sfx.levelUp();
           extra.push(h('div', { class: 'star-up' }, h('p', {}, fresh ? `${starText(tier)} earned!` : `You passed ${starText(tier)} again!`), stars(r.stars),

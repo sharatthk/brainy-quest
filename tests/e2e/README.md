@@ -14,7 +14,7 @@ cd tests/e2e
 /usr/bin/python3 bq_regression.py --viewport phone --only english,spelling
 ```
 
-Options: `--viewport phone|desktop|all`, `--only name,name`, `--changed [REF]` (only the flows covering files changed since REF, default HEAD), `--parallel` (one process per viewport), `--shots DIR`, `--headed`, `--json out.json`, `--real-delays`.
+Options: `--viewport phone|desktop|all`, `--only name,name`, `--changed [REF]` (only the flows covering files changed since REF, default HEAD), `--smoke` (the smoke flow only, seconds), `--parallel` (one process per viewport), `--shots DIR`, `--headed`, `--json out.json`, `--real-delays`.
 By default the pause after a right answer is shortened to 300 ms (`window.__bqFastAdvance`, read by `advanceDelay` in `js/ui.js`); `--real-delays` keeps the real 1 to 1.5 s. Layout checks wait for CSS animations to finish, except the buddy's (overlays, sampled separately).
 Exit code 1 if any test fails. Old code for comparison: `git -C <repo> archive <ref> | tar -x -C /tmp/bq-old` and run with `--dir /tmp/bq-old`.
 
@@ -51,4 +51,5 @@ Exit code 1 if any test fails. Old code for comparison: `git -C <repo> archive <
 | quests_stickers | 3 daily quests on home, finishing all of them in one session, quest and sticker rows on results, sticker book (72 slots), Stickers card |
 | lesson_subjects | Science Lab and Code Club: home cards, subject home, lesson cards, a Warm-up quiz to a star, indented code blocks in Python quizzes |
 | walk_through | two misses on Percent of a number, then the walk-through: answer box hidden until the steps are done, each typed step revealed after 2 wrong tries, "Now you try", right answer |
+| smoke | every main screen (home, math map and sessions, speed, lessons and quizzes, spelling, shop, trophies, stickers, grown-ups) loads with no errors or sideways scroll; `--smoke` runs only this |
 | middle_math | Middle school math units on the map, every skill in js/math/middle.js at ★/★★/★★★ with a miss each, typed negative answers |

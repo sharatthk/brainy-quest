@@ -2,7 +2,7 @@
 # Release checks in one go: unit tests, content review, browser suite. Prints one summary; exit 1 on any failure.
 #   tools/release-check.sh            # full browser suite (before every deploy)
 #   tools/release-check.sh --changed  # browser flows for changed files only (while working)
-#   tools/release-check.sh --base https://sharatthk.github.io/brainy-quest/   # browser suite against the live site
+#   tools/release-check.sh --base https://sharatthk.github.io/brainy-quest/ --smoke   # after a deploy: every screen of the live site loads (seconds)
 set -uo pipefail
 cd "$(dirname "$0")/.."
 LOG=$(mktemp -d "${TMPDIR:-/tmp}/bq-release.XXXXXX")

@@ -2,14 +2,14 @@
 import { h, modal, toast, advanceDelay } from '../ui.js';
 import { screen, stars, sessionFrame, resultsView, cheer, praise, tierList, TIER_NAMES, starText } from '../views/common.js';
 import { profile, save } from '../store.js';
-import { SKILLS, UNITS, skillById, isReached, suggestedSkill, diagnose, checkAnswer, answerText } from './skills.js';
+import { SKILLS, UNITS, skillById, isReached, suggestedSkill, gapSkills, diagnose, checkAnswer, answerText } from './skills.js';
 import { GRADES, gradeName, playerGrade, belowGrade } from './grades.js';
 import { emptyRec, record, recentAccuracy, currentTier, passed, needToPass } from '../shared/mastery.js';
 import { buildQuestion, isEmptyAnswer } from './question.js';
 import { genAt, tiersOf, tierLabel } from './tiers.js';
 import { runGuided } from './guided.js';
 import { runWalk } from './walk.js';
-import { award, recordAnswer, finishSession } from '../shared/rewards.js';
+import { award, recordAnswer, finishSession, starUp } from '../shared/rewards.js';
 import { sfx } from '../shared/sound.js';
 import { render as rerender } from '../router.js';
 import { pick, seeded } from '../shared/util.js';
@@ -123,9 +123,10 @@ export function viewPlay({ mode, skill: skillId, tier: tierParam }) {
     practice: { length: 10, title: `${skill?.title} ${starText(tier)}`, pickSkill: () => skill },
     coach: { length: 3, title: `Coach: ${skill?.title}`, pickSkill: () => skill, guided: true },
     mix: { length: 12, title: 'Daily Mix', pickSkill: mixPicker(p) },
+    gaps: { length: 10, title: 'Practice the gaps', pickSkill: () => pick(gapSkills(p).slice(0, 6)) },
     gym: { length: 8, title: 'Carry & Borrow Gym', pickSkill: () => pick(GYM.filter(s => isReached(s, p)).length >= 2 ? GYM.filter(s => isReached(s, p)) : [skillById('add-2d-c'), skillById('sub-2d-b')]) },
   }[mode];
-  if (!cfg) {
+  if (!cfg || (mode === 'gaps' && !gapSkills(p).length)) {
     location.hash = '/math';
     return;
   }
@@ -302,6 +303,7 @@ export function viewPlay({ mode, skill: skillId, tier: tierParam }) {
     }
     r.stars = Math.max(r.stars || 0, tier);
     save();
+    starUp('math', skill.id, starsBefore, r.stars);
     const fresh = r.stars > starsBefore;
     const msg = !fresh ? `You passed ${starText(tier)} again!`
       : tier === 2 && starsBefore < 2 ? `${starText(tier)} earned! You're ready for the next skill.`

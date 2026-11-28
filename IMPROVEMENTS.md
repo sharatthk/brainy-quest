@@ -4,15 +4,18 @@ Proposals from the end of each working session (see CLAUDE.md). Pick one with "d
 
 ## Pending
 
-1. **Weekly note for grown-ups.** The grade path card shows status only when someone opens the Grown-ups corner. A short "this week" summary on that page (stars earned, skills moved to ★★, the biggest gap) would make the check-in take seconds.
+1. **Weekly view across devices.** The This week log (`p.days`) lives in the profile, and sync keeps the newer whole profile, so two devices used on the same day can each miss the other's answers. Merge `days` entry by entry (sum per day, union of stars) in `js/sync/merge.js`.
+   - Proposed: 2026-11-28, after adding the activity log.
+2. **Lesson gaps too.** Practice the gaps covers math only. List English, Science and Coding units from earlier grades that were tried but not at ★★, and link to their Quiz.
    - Proposed: 2026-11-28.
-2. **Close the gaps from the grade card.** "Catching up" lists no skills. Add a "Practice the gaps" button that starts a Daily Mix limited to the below-grade skills tried but not at ★★.
-   - Proposed: 2026-11-28.
-3. **Live check in the release script.** `tools/release-check.sh --base <live url>` runs every flow against the live site (about 10 minutes). Add `--smoke` that loads each screen once and checks for page errors, for a 1-minute post-deploy check.
+3. **Smoke check in CI.** `--smoke` takes seconds. A GitHub Action that runs it against the live site after each Pages build would catch a broken deploy even when the release was pushed by hand.
    - Proposed: 2026-11-28.
 
 ## Done
 
+- **Weekly note for grown-ups**: a per-day activity log (`js/shared/activity.js`, last 35 days) feeds a This week card: days played, questions and accuracy, XP, stars, what reached ★★. Proposed 2026-11-28. Shipped in the "This week for grown-ups, practice the gaps, smoke check" commit.
+- **Close the gaps from the grade card**: Practice the gaps (`#/math/gaps`) runs a session on earlier-grade skills tried but not at ★★ (or weak skills when no grade is set). Same commit.
+- **Live check in the release script**: `--smoke` loads every main screen and checks for errors in about 6 seconds; the `deploy-pages` skill uses it after each deploy. Same commit.
 - **Pushes need a human**: `Bash(git push origin main)` is allowed in `.claude/settings.local.json` (local, not committed); the `deploy-pages` skill notes it. Proposed 2026-11-27. Done 2026-11-28 (no commit: local settings).
 - **Picture questions in the walk-through**: steps can mark the number to ask as `[[n]]` (stripped from shown steps by `genAt`); fraction pictures, ratios, number cubes, median, reflections, slope and more now ask. Tiers with nothing to ask: 18 to 5 (yes/no, compare and pick-a-quadrant). Shipped in the "Grade report for grown-ups, more walk-through questions" commit.
 - **Parent view of the grade path**: a Grade path card in the Grown-ups corner shows on grade / ahead / catching up per subject (`js/shared/gradeReport.js`). Same commit.
