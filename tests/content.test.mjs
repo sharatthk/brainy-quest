@@ -248,3 +248,12 @@ test('lesson grade paths: every unit has a grade; Next up follows the player gra
   assert.equal(unitGrade(suggestedUnit(eng, recs, 8)), 7, '8th grade done: one grade down');
   for (const s of SUBJECTS) for (let g = 1; g <= 8; g++) assert.ok(suggestedUnit(s.units, {}, g), `${s.id} has a unit for grade ${g}`);
 });
+
+test('lesson gaps follow the grade, or low quiz scores without one', async () => {
+  const { SUBJECTS } = await import('../js/lessons/subjects.js');
+  const { unitGaps } = await import('../js/lessons/grades.js');
+  const eng = SUBJECTS.find(s => s.id === 'english').units;
+  const recs = { nouns: { attempts: 3, stars: 1, best: 0.5 }, phrases: { attempts: 2, stars: 0, best: 0.4 }, verbs: { attempts: 1, stars: 2, best: 1 } };
+  assert.deepEqual(unitGaps(eng, recs, 5).map(u => u.id), ['nouns'], '5th grade: nouns (2nd grade) not at ★★; phrases is 6th grade');
+  assert.deepEqual(unitGaps(eng, recs, 0).map(u => u.id), ['nouns', 'phrases'], 'no grade: low best scores');
+});

@@ -1083,7 +1083,8 @@ def t_shop_trophies_parent(f):
     # Gaps: a 4th grader who tried a 2nd grade skill without reaching ★★ gets a Practice the gaps button.
     pr = cur_profile(f)
     skills = {**pr['math']['skills'], 'add-2d-c': {'attempts': 6, 'correct': 3, 'recent': [1, 0, 1, 0, 1, 0], 'stars': 1, 'last': 0, 'errors': {}}}
-    set_profile_fields(f, math={**pr['math'], 'skills': skills}, settings={**pr['settings'], 'grade': 4})
+    eng = {**pr['english'], 'units': {**pr['english']['units'], 'nouns': {'stars': 1, 'best': 0.5, 'attempts': 3, 'lessonSeen': True}}}
+    set_profile_fields(f, math={**pr['math'], 'skills': skills}, english=eng, settings={**pr['settings'], 'grade': 4})
     m = re.search(r'solve: (\d+) × (\d+)', f.text())  # the reload locked the grown-ups gate again
     f.page.get_by_label('answer').fill(str(int(m[1]) * int(m[2])))
     f.page.get_by_role('button', name='Enter').click()
@@ -1091,7 +1092,8 @@ def t_shop_trophies_parent(f):
     week.wait_for()
     f.check('Gaps from earlier grades' in week.inner_text() and '2-digit with carrying' in week.inner_text(), f'This week does not list the gap: {week.inner_text()!r}')
     f.shot('parent-week')
-    week.get_by_role('link', name=re.compile('Practice the gaps')).click()
+    f.check(week.locator('.lesson-gaps a', has_text='Nouns').get_attribute('href') == '#/english/quiz/nouns/2', 'English gap does not link to the Nouns Quiz')
+    week.get_by_role('link', name=re.compile('Practice the math gaps')).click()
     f.page.wait_for_selector('.stage .q-card')
     f.check(f.hash() == '#/math/gaps' and 'Practice the gaps' in f.page.locator('.topbar-title').inner_text(), f'gaps button opened {f.hash()}')
     f.check('2-digit with carrying' in f.page.locator('.stage .q-tag').inner_text(), 'the gaps session is not practicing the gap skill')

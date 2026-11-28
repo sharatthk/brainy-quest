@@ -6,7 +6,7 @@ import { SKILLS, UNITS, skillById, gapSkills } from '../math/skills.js';
 import { weekSummary } from '../shared/activity.js';
 import { dayKey } from '../shared/util.js';
 import { GRADES, gradeName, playerGrade, gradeOf } from '../math/grades.js';
-import { unitGrade } from '../lessons/grades.js';
+import { unitGrade, unitGaps } from '../lessons/grades.js';
 import { gradeStatus } from '../shared/gradeReport.js';
 import { SUBJECTS } from '../lessons/subjects.js';
 import { book } from '../lessons/lessonApp.js';
@@ -59,7 +59,13 @@ export function viewParent() {
       stat('XP', wk.xp), stat('Stars earned', wk.starsEarned)) : h('p', { class: 'muted' }, 'No practice in the last 7 days yet.'),
     twoStar.length ? h('p', {}, h('b', {}, 'Reached ★★: '), twoStar.join(', ')) : null,
     gaps.length ? h('p', {}, h('b', {}, playerGrade(p) ? 'Gaps from earlier grades: ' : 'Needs practice: '), gaps.slice(0, 6).map(s => s.title).join(', ')) : null,
-    gaps.length ? h('a', { class: 'btn alt', href: '#/math/gaps' }, `🧩 Practice the gaps (${Math.min(gaps.length, 6)} skill${gaps.length === 1 ? '' : 's'})`) : null));
+    gaps.length ? h('a', { class: 'btn alt', href: '#/math/gaps' }, `🧩 Practice the math gaps (${Math.min(gaps.length, 6)} skill${gaps.length === 1 ? '' : 's'})`) : null,
+    // English, Science and Coding gaps: each links to that unit's ★★ Quiz.
+    ...SUBJECTS.map(subj => {
+      const ug = unitGaps(subj.units, book(p, subj).units, playerGrade(p)).slice(0, 4);
+      return ug.length ? h('p', { class: 'lesson-gaps' }, h('b', {}, `${subj.emoji} ${subj.title} to review: `),
+        ug.flatMap((u, i) => [i ? ', ' : '', h('a', { href: `#/${subj.id}/quiz/${u.id}/2` }, u.title)])) : null;
+    })));
 
   // Grade path: on grade, ahead or catching up, per subject
   const g = playerGrade(p);

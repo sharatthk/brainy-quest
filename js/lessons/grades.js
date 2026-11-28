@@ -38,3 +38,13 @@ export function suggestedUnit(units, recs, grade = 0) {
     || open.find(u => unitGrade(u) >= grade - 1)
     || open[0];
 }
+
+// Units worth another go: with a grade, earlier-grade units tried but not at ★★ yet; without one,
+// units quizzed twice or more with a best score under 70%. Most-tried first.
+export function unitGaps(units, recs, grade = 0) {
+  const tried = units.filter(u => recs[u.id]?.attempts);
+  const gaps = grade
+    ? tried.filter(u => unitGrade(u) < grade && (recs[u.id].stars || 0) < 2)
+    : tried.filter(u => recs[u.id].attempts >= 2 && (recs[u.id].best ?? 1) < 0.7);
+  return gaps.sort((a, b) => recs[b.id].attempts - recs[a.id].attempts);
+}

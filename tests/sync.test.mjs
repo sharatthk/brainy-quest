@@ -36,3 +36,21 @@ test('plan covers local, remote and base ids and converges after applying', () =
   const synced = Object.fromEntries(nextLocal.map(x => [x.id, JSON.stringify(x)]));
   assert.ok(plan(nextLocal, synced, synced).every(x => x.action === 'none'));
 });
+
+test('activity logs from two devices add up instead of one side winning', async () => {
+  const { mergeDays, combineProfile, plan, preferProfile } = await import('../js/sync/merge.js');
+  const base = { '2026-11-28': { answered: 10, correct: 8, xp: 20, stars: [] } };
+  const tablet = { '2026-11-28': { answered: 15, correct: 12, xp: 30, stars: [['math', 'add-2d-c', 2]] } };
+  const laptop = { '2026-11-28': { answered: 14, correct: 9, xp: 26, stars: [['english', 'nouns', 1]] }, '2026-11-27': { answered: 3, correct: 3, xp: 6, stars: [] } };
+  const m = mergeDays(tablet, laptop, base);
+  assert.deepEqual(m['2026-11-28'], { answered: 19, correct: 13, xp: 36, stars: [['math', 'add-2d-c', 2], ['english', 'nouns', 1]] });
+  assert.equal(m['2026-11-27'].answered, 3);
+  const P = (xp, days) => JSON.stringify({ id: 'p1', name: 'Ava', xp, stats: { answered: xp }, days });
+  const acts = plan([JSON.parse(P(50, tablet))], { p1: P(40, laptop) }, { p1: P(30, base) }, preferProfile, combineProfile);
+  assert.equal(acts[0].action, 'merge');
+  const merged = JSON.parse(acts[0].merged);
+  assert.equal(merged.xp, 50, 'the copy with more progress still wins');
+  assert.equal(merged.days['2026-11-28'].answered, 19, "but keeps both devices' answers");
+  // Without activity logs the plan is unchanged.
+  assert.equal(plan([{ id: 'p1', xp: 50 }], { p1: JSON.stringify({ id: 'p1', xp: 40 }) }, { p1: JSON.stringify({ id: 'p1', xp: 30 }) }, preferProfile, combineProfile)[0].action, 'push');
+});

@@ -3,7 +3,7 @@
 // profile and imported word list to users/{uid}/{profiles|lists}/{id} and merges
 // changes from other devices with a three-way merge (see merge.js).
 import { firebaseConfig } from './firebase-config.js';
-import { plan, preferProfile } from './merge.js';
+import { plan, preferProfile, combineProfile } from './merge.js';
 import { getState, onChange, save, migrate } from '../store.js';
 import { render } from '../router.js';
 import { toast } from '../ui.js';
@@ -12,7 +12,7 @@ const CDN = 'https://www.gstatic.com/firebasejs/12.6.0';
 const MENU_ROUTES = ['/', '/profiles', '/math', '/english', '/spelling', '/shop', '/trophies', '/parent'];
 const MAX_DOC = 900_000; // Firestore documents are limited to 1 MiB.
 const KINDS = {
-  profiles: { items: () => getState().profiles, prefer: preferProfile },
+  profiles: { items: () => getState().profiles, prefer: preferProfile, combine: combineProfile },
   lists: { items: () => getState().lists, prefer: undefined },
 };
 
@@ -136,7 +136,7 @@ async function reconcile() {
   try {
     const writes = [];
     for (const [kind, cfg] of Object.entries(KINDS)) {
-      for (const a of plan(cfg.items(), s.remote[kind], s.base[kind], cfg.prefer)) {
+      for (const a of plan(cfg.items(), s.remote[kind], s.base[kind], cfg.prefer, cfg.combine)) {
         const ref = fsMod.doc(db, 'users', s.uid, kind, a.id);
         if (a.action === 'none') {
           if (a.local === null) delete s.base[kind][a.id];
@@ -149,6 +149,12 @@ async function reconcile() {
           applyLocal(kind, a.id, null);
           delete s.base[kind][a.id];
           pulled++;
+        } else if (a.action === 'merge') {
+          // Both devices changed it: keep the merged copy here and send it up.
+          applyLocal(kind, a.id, JSON.parse(a.merged));
+          pulled++;
+          writes.push(fsMod.setDoc(ref, { json: a.merged, deleted: false, name: JSON.parse(a.merged).name || '', updatedAt: fsMod.serverTimestamp() })
+            .then(() => { s.base[kind][a.id] = a.merged; }));
         } else if (a.action === 'push') {
           if (a.local.length > MAX_DOC) {
             problem = `"${JSON.parse(a.local).name}" is too large to sync. Split it into smaller lists.`;

@@ -4,15 +4,18 @@ Proposals from the end of each working session (see CLAUDE.md). Pick one with "d
 
 ## Pending
 
-1. **Weekly view across devices.** The This week log (`p.days`) lives in the profile, and sync keeps the newer whole profile, so two devices used on the same day can each miss the other's answers. Merge `days` entry by entry (sum per day, union of stars) in `js/sync/merge.js`.
-   - Proposed: 2026-11-28, after adding the activity log.
-2. **Lesson gaps too.** Practice the gaps covers math only. List English, Science and Coding units from earlier grades that were tried but not at ★★, and link to their Quiz.
+1. **Math book gaps.** Compared with the Math study guide's 63 chapters, missing or thin: types of numbers (rational, irrational), proper and improper fractions and mixed numbers, commission, properties (commutative, associative, distributive), multistep equations with x on both sides, word problems with equations, intro geometry (points, lines, rays), classifying triangles and quadrilaterals, 3D figures, volume of cones, pyramids and spheres, transversals, statistical questions and samples, mode, MAD and IQR, data displays, relations and functions, systems of equations, nonlinear functions, polygons on the coordinate plane, translations, rotations and dilations.
+   - Proposed: 2026-11-28, from the coverage check.
+2. **English book gaps.** Compared with the English study guide's 32 chapters, missing or thin: intensive pronouns, verbals (gerunds, participles, infinitives), verb moods, reference materials, types of fiction (genres), objective summary, poetry, types of nonfiction, research for writing (sources, citing, plagiarism), and the writing process (draft, revise, edit).
    - Proposed: 2026-11-28.
-3. **Smoke check in CI.** `--smoke` takes seconds. A GitHub Action that runs it against the live site after each Pages build would catch a broken deploy even when the release was pushed by hand.
+3. **Science book check.** The Science study guide was not in the last batch of books, so Science Lab was only checked against a keyword list (only the electromagnetic spectrum looked missing). Check it against the book's chapter list.
    - Proposed: 2026-11-28.
 
 ## Done
 
+- **Weekly view across devices**: when two devices both changed a player, sync keeps the one with more progress but adds the This week logs together (`mergeDays`, `combineProfile` in `js/sync/merge.js`). Proposed 2026-11-28. Shipped in the "Sync keeps both devices' activity, lesson gaps, live smoke action" commit.
+- **Lesson gaps too**: This week lists English, Science and Coding units to review (earlier-grade units not at ★★, or low quiz scores), each linking to its Quiz. Same commit.
+- **Smoke check in CI**: `.github/workflows/live-smoke.yml` runs `--smoke` against the live site after every Pages build. Same commit.
 - **Weekly note for grown-ups**: a per-day activity log (`js/shared/activity.js`, last 35 days) feeds a This week card: days played, questions and accuracy, XP, stars, what reached ★★. Proposed 2026-11-28. Shipped in the "This week for grown-ups, practice the gaps, smoke check" commit.
 - **Close the gaps from the grade card**: Practice the gaps (`#/math/gaps`) runs a session on earlier-grade skills tried but not at ★★ (or weak skills when no grade is set). Same commit.
 - **Live check in the release script**: `--smoke` loads every main screen and checks for errors in about 6 seconds; the `deploy-pages` skill uses it after each deploy. Same commit.
